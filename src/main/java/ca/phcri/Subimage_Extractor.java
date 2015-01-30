@@ -38,13 +38,22 @@ import java.awt.event.ActionListener;
 public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener {
 	private String dir, name, id;
 	private int xStart, yStart;
-	private static int width = 1028, height = 768, noSub;
-
+	private static int subWidth = 1028, subHeight = 768, noSubH, noSubV, spaceH, spaceV;
+	private static String specification, location;
+	
 	ImageProcessorReader r ;
 	ImagePlus impThumb;
 	Roi sectionLocation;
 
 	PlugInFrame rg;
+	private static int xSubsStart, ySubsStart;
+	private static final String[] subimagesSpecifiedBy = 
+		{"Subimage Number", "Spacing between Subimages"};
+	private static final int NUMBER = 0, SPACING = 1;
+
+	private static final String[] subimagesLocatedBy = 
+		{"Random offset", "Starting at x = 0, y = 0", "Manual Location"};
+	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 
 	
 	
@@ -57,12 +66,26 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		
 		//gd.addNumericField("xStart:", xStart, 0);
 		//gd.addNumericField("yStart:", yStart, 0);
-		gd.addNumericField("Subimage Width:", width, 0);
-		gd.addNumericField("Subimage Height:", height, 0);
-		gd.addNumericField("Number of Subimages", noSub, 0);
+		gd.addNumericField("Subimage Width:", subWidth, 0);
+		gd.addNumericField("Subimage Height:", subHeight, 0);
+		
+		gd.addRadioButtonGroup("Subimage selection: ", subimagesSpecifiedBy,
+				2, 1, subimagesSpecifiedBy[NUMBER]);
+
+		gd.addNumericField("Number of Subimages Horizontally", noSubH, 0);
+		gd.addNumericField("Number of Subimages Vertically", noSubV, 0);
+		gd.addNumericField("Spacing between Subimages Horizontally", 0, 0);
+		gd.addNumericField("Spacing between Subimages Vertically", 0, 0);
+		
+		gd.addRadioButtonGroup("Subimage location: ", subimagesLocatedBy,
+				3, 1, subimagesLocatedBy[RANDOM]);
+		gd.addNumericField("xSubsStart", 0, 0);
+		gd.addNumericField("ySubsStart", 0, 0);
+		
 		
 		gd.addDialogListener(this);
 		gd.showDialog();
+		
 		
 		if (gd.wasCanceled()) return;
 		if (gd.wasOKed()){
@@ -72,11 +95,21 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	}
 	
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
-		//xStart = (int) gd.getNextNumber();
-		//yStart = (int) gd.getNextNumber();
-		width = (int) gd.getNextNumber();
-		height = (int) gd.getNextNumber();
-		noSub = (int) gd.getNextNumber();
+
+		subWidth = (int) gd.getNextNumber();
+		subHeight = (int) gd.getNextNumber();
+		
+		specification = gd.getNextRadioButton();
+		
+		noSubH = (int) gd.getNextNumber();
+		noSubV = (int) gd.getNextNumber();
+		spaceH = (int) gd.getNextNumber();
+		spaceV = (int) gd.getNextNumber();
+		
+		location = gd.getNextRadioButton();
+		
+		xSubsStart = (int) gd.getNextNumber();
+		ySubsStart = (int) gd.getNextNumber();
 		return true;
 	}
 	
@@ -166,11 +199,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			r.setSeries(0);      
 			int num = r.getImageCount();
 			
-			ImageStack stack = new ImageStack(width, height);
+			ImageStack stack = new ImageStack(subWidth, subHeight);
 
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
-				ImageProcessor ip = r.openProcessors(i, xStart, yStart, width, height)[0];
+				ImageProcessor ip = r.openProcessors(i, xStart, yStart, subWidth, subHeight)[0];
 
 				stack.addSlice("" + (i + 1), ip);
 			}
@@ -182,7 +215,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			
 			imp.show();
 			Overlay ol = impThumb.getOverlay();
-			Roi roi = new Roi(0, 0, (int) width/71, (int) height/71);
+			Roi roi = new Roi(0, 0, (int) subWidth/71, (int) subHeight/71);
 			
 			ol.addElement(roi);
 			impThumb.setOverlay(ol);
