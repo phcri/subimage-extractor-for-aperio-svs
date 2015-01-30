@@ -46,7 +46,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	Roi sectionLocation;
 
 	PlugInFrame rg;
-	private Rectangle selectionRect;
+	//private Rectangle selectionRect;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimagesSpecifiedBy = 
 		{"Subimage Number", "Spacing between Subimages"};
@@ -63,6 +63,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private int widthThumb;
 	private int heightThumb;
 	private double ratioImageThumb;
+	private int rectX;
+	private int rectY;
+	private int rectWidth;
+	private int rectHeight;
 	
 	
 	public void run(String arg) {
@@ -143,7 +147,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
 				askSettings();
-				selectionRect = sectionLocation.getBounds();
+				Rectangle selectionRect = sectionLocation.getBounds();
+				rectX = selectionRect.x;
+				rectY = selectionRect.y;
+				rectWidth = selectionRect.width;
+				rectHeight = selectionRect.height;
 				IJ.log("selection" + selectionRect.x + selectionRect.y + selectionRect.width + selectionRect.height);
 			} else {
 				IJ.error("No selection");
@@ -201,8 +209,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				spaceH = 0;
 				spaceV = 0;
 			} else {
-				spaceH = (int) (selectionRect.width/(noSubH - 1) - subWidth);
-				spaceV = (int) (selectionRect.height/(noSubV - 1) - subHeight);
+				spaceH = (int) (rectWidth/(noSubH - 1) - subWidth);
+				spaceV = (int) (rectHeight/(noSubV - 1) - subHeight);
 				//actual area taken by subimages are (noSubH - 1) * (noSubV - 1)
 			}
 		}
@@ -214,8 +222,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 //			subsStartX = (int) (random.nextInt(appX) - appX + selectionRect.x * ratioImageThumb);
 //			subsStartY = (int) (random.nextInt(appY) - appY + selectionRect.y * ratioImageThumb);
 		} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
-			subsStartX = (int) (selectionRect.x * ratioImageThumb);
-			subsStartY = (int) (selectionRect.y * ratioImageThumb);
+			subsStartX = (int) (rectX * ratioImageThumb);
+			subsStartY = (int) (rectY * ratioImageThumb);
 		}
 		
 		return true;
@@ -233,8 +241,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			
 			ImageStack stack = new ImageStack(subWidth, subHeight);
 			
-			//startX = subsStartX;
-			//startY = subsStartY;
+			startX = subsStartX;
+			startY = subsStartY;
 
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
@@ -250,7 +258,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			
 			imp.show();
 			Overlay ol = impThumb.getOverlay();
-			Roi roi = new Roi(0, 0, (int) subWidth/ratioImageThumb, (int) subHeight/ratioImageThumb);
+			Roi roi = new Roi((int) startX/ratioImageThumb, (int) startY/ratioImageThumb, (int) subWidth/ratioImageThumb, (int) subHeight/ratioImageThumb);
 			
 			ol.addElement(roi);
 			impThumb.setOverlay(ol);
