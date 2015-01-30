@@ -14,58 +14,73 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
+import ij.plugin.frame.PlugInFrame;
 import ij.process.ImageProcessor;
+
 import java.io.IOException;
+
 import loci.formats.ChannelSeparator;
 import loci.formats.FormatException;
 import loci.plugins.util.ImageProcessorReader;
 import loci.plugins.util.LociPrefs;
 import ij.process.ImageConverter;
-import ij.gui.GenericDialog;
 import ij.gui.*;
+
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 
 /**
  * An ImageJ plugin that uses Bio-Formats to open and save regions of SVS file at highest magnification.
  */
 
-public class Subimage_Extractor implements PlugIn, DialogListener {
+public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener {
 	private String dir, name, id;
 	private int xStart, yStart;
-	private static int width = 1028, height = 768;
+	private static int width = 1028, height = 768, noSub;
+
+	ImageProcessorReader r ;
+	ImagePlus impThumb;
+	Roi sectionLocation;
+
+	PlugInFrame rg;
+
 	
 	
 	public void run(String arg) {
 		openImage(arg);
-		//askSettings();
 	}
 	
 	void askSettings() {
 		GenericDialog gd = new GenericDialog("Subimage location and size...");
 		
-		gd.addNumericField("xStart:", xStart, 0);
-		gd.addNumericField("yStart:", yStart, 0);
+		//gd.addNumericField("xStart:", xStart, 0);
+		//gd.addNumericField("yStart:", yStart, 0);
 		gd.addNumericField("Subimage Width:", width, 0);
 		gd.addNumericField("Subimage Height:", height, 0);
+		gd.addNumericField("Number of Subimages", noSub, 0);
 		
 		gd.addDialogListener(this);
 		gd.showDialog();
 		
 		if (gd.wasCanceled()) return;
 		if (gd.wasOKed()){
-			ImageProcessorReader r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
-			openSubimage(r);
+			r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
+			openSubimage();
 		}
 	}
 	
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
-		xStart = (int) gd.getNextNumber();
-		yStart = (int) gd.getNextNumber();
+		//xStart = (int) gd.getNextNumber();
+		//yStart = (int) gd.getNextNumber();
 		width = (int) gd.getNextNumber();
 		height = (int) gd.getNextNumber();
+		noSub = (int) gd.getNextNumber();
 		return true;
 	}
+	
+
 	
 	void openImage(String arg) {
 		OpenDialog od = new OpenDialog("Open Image File...", arg);
@@ -80,7 +95,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 			r.setSeries(3);      
 			int num = r.getImageCount();
 			
-			ImageStack stack = new ImageStack(width, height);
+			ImageStack stack = new ImageStack(r.getSizeX(), r.getSizeY());
 
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
@@ -89,11 +104,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 				stack.addSlice("" + (i + 1), ip);
 			}
 			IJ.showStatus("Constructing image");
-			ImagePlus imp = new ImagePlus("thumbnail of " + name, stack);
+			impThumb = new ImagePlus("thumbnail of " + name, stack);
 			
 
-			new ImageConverter(imp).convertRGBStackToRGB();
-			imp.show();
+			new ImageConverter(impThumb).convertRGBStackToRGB();
+			impThumb.show();
 			
 			r.close();
 			IJ.showStatus("");
@@ -104,9 +119,47 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 		catch (IOException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
 		}
+		
+		roiGetter();
 	}
 	
-	void openSubimage(ImageProcessorReader r){
+	
+	void roiGetter(){
+		rg = new PlugInFrame("set ROI");
+		rg.setSize(200, 100);
+		Button b1 = new Button("OK");
+		//Button b2 = new Button("Cancel");
+		b1.addActionListener(this);
+		//b2.addActionListener(this);
+		
+		rg.add(b1);
+		//rg.add(b2);
+		
+		rg.setVisible(true);
+	}
+	
+	public void actionPerformed(ActionEvent e){
+		if("OK".equals(e.getActionCommand())){
+			Roi sectionLocation = impThumb.getRoi();
+			
+			if(sectionLocation != null){
+				sectionLocation.setName("section");
+				impThumb.setOverlay(new Overlay(sectionLocation));
+				rg.dispose();
+				askSettings();
+				Rectangle selectionRect = sectionLocation.getBounds();
+				IJ.log("selection" + selectionRect.x + selectionRect.y + selectionRect.width + selectionRect.height);
+			} else {
+				IJ.error("No selection");
+			}
+			
+
+		}
+		if("Cancel".equals(e.getActionCommand()))
+			rg.dispose();
+	}
+	
+	void openSubimage(){
 		try {
 			IJ.showStatus("Examining file " + name);
 			r.setId(id);
@@ -126,7 +179,13 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 			
 
 			new ImageConverter(imp).convertRGBStackToRGB();
+			
 			imp.show();
+			Overlay ol = impThumb.getOverlay();
+			Roi roi = new Roi(0, 0, (int) width/71, (int) height/71);
+			
+			ol.addElement(roi);
+			impThumb.setOverlay(ol);
 			
 			r.close();
 			IJ.showStatus("");
