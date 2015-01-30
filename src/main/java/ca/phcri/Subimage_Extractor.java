@@ -211,8 +211,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		appY = subHeight + spaceV;
 		
 		if(location.equals(subimagesLocatedBy[RANDOM])){
-			subsStartX = (int) (random.nextInt(appX) - appX + selectionRect.x * ratioImageThumb);
-			subsStartY = (int) (random.nextInt(appY) - appY + selectionRect.y * ratioImageThumb);
+//			subsStartX = (int) (random.nextInt(appX) - appX + selectionRect.x * ratioImageThumb);
+//			subsStartY = (int) (random.nextInt(appY) - appY + selectionRect.y * ratioImageThumb);
 		} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
 			subsStartX = (int) (selectionRect.x * ratioImageThumb);
 			subsStartY = (int) (selectionRect.y * ratioImageThumb);
