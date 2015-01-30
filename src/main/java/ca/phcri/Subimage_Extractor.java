@@ -51,7 +51,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	PlugInFrame rg;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimagesSpecifiedBy = 
-		{"Subimage Number", "Spacing between Subimages"};
+		{"Subimage Number", "Space between Subimages"};
 	private static final int NUMBER = 0, SPACE = 1;
 
 	private static final String[] subimagesLocatedBy = 
@@ -220,8 +220,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		//IJ.log("appY = " + appY + ", subHeight = " + subHeight + ", spaceVert = " + spaceVert);
 		
 		if(specification.equals(subimagesSpecifiedBy[SPACE])){
-			noSubHor = (int) (rectWidth / appX) + 1;
-			noSubVert = (int) (rectHeight / appY) + 1;
+			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
+			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
 		}
 		
 		if(location.equals(subimagesLocatedBy[RANDOM])){
