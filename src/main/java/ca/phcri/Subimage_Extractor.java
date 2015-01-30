@@ -49,7 +49,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	Roi sectionLocation;
 
 	PlugInFrame rg;
-	//private Rectangle selectionRect;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimagesSpecifiedBy = 
 		{"Subimage Number", "Spacing between Subimages"};
@@ -59,17 +58,12 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		{"Random offset", "Starting at x = 0, y = 0", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 	private Random random = new Random(System.currentTimeMillis());
-	private int appX;
-	private int appY;
-	private int widthImage;
-	private int heightImage;
-	private int widthThumb;
-	private int heightThumb;
+	private int appX, appY;
+	private int widthImage, heightImage;
+	private int widthThumb, heightThumb;
 	private double ratioImageThumbX, ratioImageThumbY;
-	private int rectX;
-	private int rectY;
-	private int rectWidth;
-	private int rectHeight;
+	private int rectX, rectY;
+	private int rectWidth, rectHeight;
 	
 	
 	public void run(String arg) {
