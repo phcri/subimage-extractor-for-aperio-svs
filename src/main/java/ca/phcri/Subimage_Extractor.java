@@ -31,7 +31,6 @@ import java.awt.*;
  */
 
 public class Subimage_Extractor implements PlugIn, DialogListener {
-	private ImageProcessorReader r;
 	private String dir, name, id;
 	private int xStart, yStart;
 	private static int width = 1028, height = 768;
@@ -39,7 +38,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 	
 	public void run(String arg) {
 		openImage(arg);
-		askSettings();
+		//askSettings();
 	}
 	
 	void askSettings() {
@@ -55,7 +54,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 		
 		if (gd.wasCanceled()) return;
 		if (gd.wasOKed()){
-			openSubimage();
+			ImageProcessorReader r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
+			openSubimage(r);
 		}
 	}
 	
@@ -71,11 +71,42 @@ public class Subimage_Extractor implements PlugIn, DialogListener {
 		OpenDialog od = new OpenDialog("Open Image File...", arg);
 		dir = od.getDirectory();
 		name = od.getFileName();
-		id = dir + name;
-		r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
+		id = dir + name;	
+		ImageProcessorReader r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
+		
+		try {
+			IJ.showStatus("Examining file " + name);
+			r.setId(id);
+			r.setSeries(3);      
+			int num = r.getImageCount();
+			
+			ImageStack stack = new ImageStack(width, height);
+
+			for (int i=0; i<num; i++) {
+				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
+				ImageProcessor ip = r.openProcessors(i)[0];
+
+				stack.addSlice("" + (i + 1), ip);
+			}
+			IJ.showStatus("Constructing image");
+			ImagePlus imp = new ImagePlus("thumbnail of " + name, stack);
+			
+
+			new ImageConverter(imp).convertRGBStackToRGB();
+			imp.show();
+			
+			r.close();
+			IJ.showStatus("");
+		}
+		catch (FormatException exc) {
+			IJ.error("Sorry, an error occurred: " + exc.getMessage());
+		}
+		catch (IOException exc) {
+			IJ.error("Sorry, an error occurred: " + exc.getMessage());
+		}
 	}
 	
-	void openSubimage(){
+	void openSubimage(ImageProcessorReader r){
 		try {
 			IJ.showStatus("Examining file " + name);
 			r.setId(id);
