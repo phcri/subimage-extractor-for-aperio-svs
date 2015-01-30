@@ -146,13 +146,15 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				sectionLocation.setName("section");
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
-				askSettings();
+
 				Rectangle selectionRect = sectionLocation.getBounds();
 				rectX = selectionRect.x;
 				rectY = selectionRect.y;
 				rectWidth = selectionRect.width;
 				rectHeight = selectionRect.height;
 				IJ.log("selection" + selectionRect.x + selectionRect.y + selectionRect.width + selectionRect.height);
+				askSettings();
+			
 			} else {
 				IJ.error("No selection");
 			}
