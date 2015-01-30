@@ -232,6 +232,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			subsStartY = (int) (rectY * ratioImageThumbY);
 		}
 		
+		drawSubimagesOnThumb();
 		return true;
 	}
 
@@ -249,7 +250,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			r.setId(id);
 			r.setSeries(0);      
 			int num = r.getImageCount();
-			Overlay ol = impThumb.getOverlay();
+
 			
 			for(int m = 0; m < noSubVert; m++) {
 				int subimageY = subsStartY + appY * m;
@@ -276,22 +277,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 					new ImageConverter(imp).convertRGBStackToRGB();
 					
 					imp.show();
-					
-					Roi roi = new Roi((int) (subimageX/ratioImageThumbX), 
-									(int) (subimageY/ratioImageThumbY), 
-									(int) (subWidth/ratioImageThumbX), 
-									(int) (subHeight/ratioImageThumbY));
-					roi.setName("Sub" + (noSubHor * m + n + 1));
-					roi.setColor(Color.green);
-					ol.addElement(roi);
 				}
 			}
-			ol.drawNames(true);
-			ol.setLabelColor(Color.gray);
-			ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
-			impThumb.setOverlay(ol);
 			
 			r.close();
+			drawSubimagesOnThumb();
 			IJ.showStatus("");
 		}
 		catch (FormatException exc) {
@@ -300,5 +290,36 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		catch (IOException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
 		}
+	}
+	
+	void drawSubimagesOnThumb(){
+		Overlay ol = impThumb.getOverlay();
+		
+		Roi[] Rois = ol.toArray();
+		for(Roi roi : Rois){
+			String roiName = roi.getName();
+			if(roiName != null && roiName.startsWith("Sub")){
+				ol.remove(roi);
+			}
+		}
+		
+		for(int m = 0; m < noSubVert; m++) {
+			int subimageY = subsStartY + appY * m;
+			for (int n = 0; n < noSubHor; n++) {
+				int subimageX = subsStartX + appX * n;
+				Roi roi = new Roi((int) (subimageX/ratioImageThumbX), 
+						(int) (subimageY/ratioImageThumbY), 
+						(int) (subWidth/ratioImageThumbX), 
+						(int) (subHeight/ratioImageThumbY));
+		roi.setName("Sub" + (noSubHor * m + n + 1));
+		roi.setColor(Color.green);
+		ol.addElement(roi);
+			}
+		}
+		
+		ol.drawNames(true);
+		ol.setLabelColor(Color.gray);
+		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
+		impThumb.setOverlay(ol);
 	}
 }
