@@ -5,7 +5,8 @@ package ca.phcri;
  * This plugin is written to extract subimages from Aperio SVS by 
  * modifying the Read_Image.java.
  * (http://www.openmicroscopy.org/site/support/bio-formats5/developers/java-library.html)
- * (https://github.com/openmicroscopy/bioformats/blob/v5.0.6/components/bio-formats-plugins/utils/Read_Image.java).
+ * (https://github.com/openmicroscopy/bioformats/blob/v5.0.6/
+ * components/bio-formats-plugins/utils/Read_Image.java).
  * #L%
  */
 
@@ -33,13 +34,15 @@ import java.awt.event.ActionListener;
 
 
 /**
- * An ImageJ plugin that uses Bio-Formats to open and save regions of SVS file at highest magnification.
+ * An ImageJ plugin that uses Bio-Formats to open and save 
+ * regions of SVS file at highest magnification.
  */
 
 public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener {
 	private String dir, name, id;
 	private int startX, startY;
-	private static int subWidth = 1028, subHeight = 768, noSubH = 1, noSubV = 1, spaceH, spaceV;
+	private static int subWidth = 1028, subHeight = 768,
+			noSubH = 1, noSubV = 1, spaceH, spaceV;
 	private static String specification, location;
 	
 	private ImagePlus impThumb;
@@ -62,7 +65,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private int heightImage;
 	private int widthThumb;
 	private int heightThumb;
-	private double ratioImageThumb;
+	private double ratioImageThumbX, ratioImageThumbY;
 	private int rectX;
 	private int rectY;
 	private int rectWidth;
@@ -78,7 +81,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		dir = od.getDirectory();
 		name = od.getFileName();
 		id = dir + name;	
-		ImageProcessorReader r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
+		ImageProcessorReader r = new ImageProcessorReader(
+				new ChannelSeparator(LociPrefs.makeImageReader()));
 
 		
 		try {
@@ -89,7 +93,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			heightImage = r.getSizeY();
 			widthThumb = r.getThumbSizeX();
 			heightThumb = r.getThumbSizeY();
-			ratioImageThumb = widthImage/widthThumb;
+			ratioImageThumbX = widthImage/widthThumb;
+			ratioImageThumbY = heightImage/heightThumb;
 
 			int num = r.getImageCount();
 			
@@ -146,13 +151,14 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				sectionLocation.setName("section");
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
-				askSettings();
+
 				Rectangle selectionRect = sectionLocation.getBounds();
 				rectX = selectionRect.x;
 				rectY = selectionRect.y;
 				rectWidth = selectionRect.width;
 				rectHeight = selectionRect.height;
-				IJ.log("selection" + selectionRect.x + selectionRect.y + selectionRect.width + selectionRect.height);
+				askSettings();
+			
 			} else {
 				IJ.error("No selection");
 			}
@@ -219,11 +225,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		appY = subHeight + spaceV;
 		
 		if(location.equals(subimagesLocatedBy[RANDOM])){
-//			subsStartX = (int) (random.nextInt(appX) - appX + selectionRect.x * ratioImageThumb);
-//			subsStartY = (int) (random.nextInt(appY) - appY + selectionRect.y * ratioImageThumb);
+			subsStartX = (int) (random.nextInt(appX) - appX + rectX * ratioImageThumbX);
+			subsStartY = (int) (random.nextInt(appY) - appY + rectY * ratioImageThumbY);
 		} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
-			subsStartX = (int) (rectX * ratioImageThumb);
-			subsStartY = (int) (rectY * ratioImageThumb);
+			subsStartX = (int) (rectX * ratioImageThumbX);
+			subsStartY = (int) (rectY * ratioImageThumbY);
 		}
 		
 		return true;
@@ -231,7 +237,12 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 
 	
 	void openSubimages(){
-		ImageProcessorReader r = new ImageProcessorReader(new ChannelSeparator(LociPrefs.makeImageReader()));
+		ImageProcessorReader r = 
+				new ImageProcessorReader(
+						new ChannelSeparator(
+								LociPrefs.makeImageReader()
+								)
+						);
 		
 		try {
 			IJ.showStatus("Examining file " + name);
@@ -246,19 +257,25 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
-				ImageProcessor ip = r.openProcessors(i, startX, startY, subWidth, subHeight)[0];
+				ImageProcessor ip = 
+						r.openProcessors(i, startX, startY, subWidth, subHeight)[0];
 
 				stack.addSlice("" + (i + 1), ip);
 			}
 			IJ.showStatus("Constructing image");
-			ImagePlus imp = new ImagePlus(name + ", subimage starting at (x = " + startX + ", y = " + startY + ")", stack);
+			ImagePlus imp = 
+					new ImagePlus(name + ", subimage starting at "+
+							"(x = " + startX + ", y = " +	startY + ")", 
+							stack);
 			
 
 			new ImageConverter(imp).convertRGBStackToRGB();
 			
 			imp.show();
 			Overlay ol = impThumb.getOverlay();
-			Roi roi = new Roi((int) startX/ratioImageThumb, (int) startY/ratioImageThumb, (int) subWidth/ratioImageThumb, (int) subHeight/ratioImageThumb);
+			Roi roi = 
+					new Roi((int) startX/ratioImageThumbX, (int) startY/ratioImageThumbY, 
+							(int) subWidth/ratioImageThumbX, (int) subHeight/ratioImageThumbY);
 			
 			ol.addElement(roi);
 			impThumb.setOverlay(ol);
