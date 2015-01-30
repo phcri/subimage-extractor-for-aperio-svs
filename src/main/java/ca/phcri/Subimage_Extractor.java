@@ -42,7 +42,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private String dir, name, id;
 	private int startX, startY;
 	private static int subWidth = 1028, subHeight = 768,
-			noSubH = 1, noSubV = 1, spaceH, spaceV;
+			noSubHor = 1, noSubVert = 1, spaceHor, spaceVert;
 	private static String specification, location;
 	
 	private ImagePlus impThumb;
@@ -52,25 +52,25 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private static int subsStartX, subsStartY;
 	private static final String[] subimagesSpecifiedBy = 
 		{"Subimage Number", "Spacing between Subimages"};
-	private static final int NUMBER = 0, SPACING = 1;
+	private static final int NUMBER = 0, SPACE = 1;
 
 	private static final String[] subimagesLocatedBy = 
 		{"Random offset", "Starting at x = 0, y = 0", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 	private Random random = new Random(System.currentTimeMillis());
 	private int appX, appY;
-	private int widthImage, heightImage;
-	private int widthThumb, heightThumb;
+	private int imageWidth, imageHeight;
+	private int thumbWidth, thumbHeight;
 	private double ratioImageThumbX, ratioImageThumbY;
 	private int rectX, rectY;
 	private int rectWidth, rectHeight;
 	
 	
 	public void run(String arg) {
-		openImage(arg);
+		openThumb(arg);
 	}
 
-	void openImage(String arg) {
+	void openThumb(String arg) {
 		OpenDialog od = new OpenDialog("Open Image File...", arg);
 		dir = od.getDirectory();
 		name = od.getFileName();
@@ -83,16 +83,16 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			IJ.showStatus("Examining file " + name);
 			r.setId(id);
 			r.setSeries(0);
-			widthImage = r.getSizeX();
-			heightImage = r.getSizeY();
-			widthThumb = r.getThumbSizeX();
-			heightThumb = r.getThumbSizeY();
-			ratioImageThumbX = widthImage/widthThumb;
-			ratioImageThumbY = heightImage/heightThumb;
+			imageWidth = r.getSizeX();
+			imageHeight = r.getSizeY();
+			thumbWidth = r.getThumbSizeX();
+			thumbHeight = r.getThumbSizeY();
+			ratioImageThumbX = imageWidth/thumbWidth;
+			ratioImageThumbY = imageHeight/thumbHeight;
 
 			int num = r.getImageCount();
 			
-			ImageStack stack = new ImageStack(widthThumb, heightThumb);
+			ImageStack stack = new ImageStack(thumbWidth, thumbHeight);
 
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
@@ -143,6 +143,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			
 			if(sectionLocation != null){
 				sectionLocation.setName("section");
+				sectionLocation.setColor(Color.yellow);
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
 
@@ -172,10 +173,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.addNumericField("Subimage Height:", subHeight, 0);
 		gd.addRadioButtonGroup("Subimage selection: ", subimagesSpecifiedBy,
 				2, 1, subimagesSpecifiedBy[NUMBER]);
-		gd.addNumericField("Number of Subimages Horizontally", noSubH, 0);
-		gd.addNumericField("Number of Subimages Vertically", noSubV, 0);
-		gd.addNumericField("Spacing between Subimages Horizontally", 0, 0);
-		gd.addNumericField("Spacing between Subimages Vertically", 0, 0);
+		gd.addNumericField("Number of Subimages Horizontally", noSubHor, 0);
+		gd.addNumericField("Number of Subimages Vertically", noSubVert, 0);
+		gd.addNumericField("Space between Subimages Horizontally", 0, 0);
+		gd.addNumericField("Space between Subimages Vertically", 0, 0);
 		gd.addRadioButtonGroup("Subimage location: ", subimagesLocatedBy,
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
@@ -196,31 +197,36 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		subWidth = (int) gd.getNextNumber();
 		subHeight = (int) gd.getNextNumber();
 		specification = gd.getNextRadioButton();
-		noSubH = (int) gd.getNextNumber();
-		noSubV = (int) gd.getNextNumber();
-		spaceH = (int) gd.getNextNumber();
-		spaceV = (int) gd.getNextNumber();
+		noSubHor = (int) gd.getNextNumber();
+		noSubVert = (int) gd.getNextNumber();
+		spaceHor = (int) gd.getNextNumber();
+		spaceVert = (int) gd.getNextNumber();
 		location = gd.getNextRadioButton();
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
 		
 		if(specification.equals(subimagesSpecifiedBy[NUMBER])){
-			if(noSubH == 1){
-				spaceH = 0;
-				spaceV = 0;
-			} else {
-				spaceH = (int) (rectWidth/(noSubH - 1) - subWidth);
-				spaceV = (int) (rectHeight/(noSubV - 1) - subHeight);
-				//actual area taken by subimages are (noSubH - 1) * (noSubV - 1)
-			}
+			if(noSubHor == 1)	spaceHor = 0;
+			else spaceHor = (int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
+			
+			if(noSubVert == 1) spaceVert = 0;
+			else spaceVert = (int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert - subHeight);
 		}
 		
-		appX = subWidth + spaceH;
-		appY = subHeight + spaceV;
+		appX = subWidth + spaceHor;
+		appY = subHeight + spaceVert;
+		
+		//IJ.log("appX = " + appX + ", subWidth = " + subWidth + ", spaceHor = " + spaceHor);
+		//IJ.log("appY = " + appY + ", subHeight = " + subHeight + ", spaceVert = " + spaceVert);
+		
+		if(specification.equals(subimagesSpecifiedBy[SPACE])){
+			noSubHor = (int) (rectWidth / appX) + 1;
+			noSubVert = (int) (rectHeight / appY) + 1;
+		}
 		
 		if(location.equals(subimagesLocatedBy[RANDOM])){
-			subsStartX = (int) (random.nextInt(appX) - appX + rectX * ratioImageThumbX);
-			subsStartY = (int) (random.nextInt(appY) - appY + rectY * ratioImageThumbY);
+			subsStartX = (int) (random.nextInt(appX) - subWidth + rectX * ratioImageThumbX);
+			subsStartY = (int) (random.nextInt(appY) - subHeight + rectY * ratioImageThumbY);
 		} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
 			subsStartX = (int) (rectX * ratioImageThumbX);
 			subsStartY = (int) (rectY * ratioImageThumbY);
@@ -235,48 +241,56 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				new ImageProcessorReader(
 						new ChannelSeparator(
 								LociPrefs.makeImageReader()
-								)
-						);
+							)
+					);
 		
 		try {
 			IJ.showStatus("Examining file " + name);
 			r.setId(id);
 			r.setSeries(0);      
 			int num = r.getImageCount();
-			
-			ImageStack stack = new ImageStack(subWidth, subHeight);
-			
-			startX = subsStartX;
-			startY = subsStartY;
-
-			for (int i=0; i<num; i++) {
-				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
-				ImageProcessor ip = 
-						r.openProcessors(i, startX, startY, subWidth, subHeight)[0];
-
-				stack.addSlice("" + (i + 1), ip);
-			}
-			IJ.showStatus("Constructing image");
-			ImagePlus imp = 
-					new ImagePlus(name + ", subimage starting at "+
-							"(x = " + startX + ", y = " +	startY + ")", 
-							stack);
-			
-
-			new ImageConverter(imp).convertRGBStackToRGB();
-			
-			imp.show();
 			Overlay ol = impThumb.getOverlay();
-			Roi roi = 
-					new Roi((int) startX/ratioImageThumbX, (int) startY/ratioImageThumbY, 
-							(int) subWidth/ratioImageThumbX, (int) subHeight/ratioImageThumbY);
 			
-			ol.addElement(roi);
+			for(int m = 0; m < noSubVert; m++) {
+				int subimageY = subsStartY + appY * m;
+				for (int n = 0; n < noSubHor; n++) {
+					int subimageX = subsStartX + appX * n;
+					
+					ImageStack stack = new ImageStack(subWidth, subHeight);
+					
+					for (int i=0; i<num; i++) {
+						IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
+						ImageProcessor ip = 
+								r.openProcessors(i, subimageX, subimageY, 
+										subWidth, subHeight)[0];
+
+						stack.addSlice("" + (i + 1), ip);
+					}
+					
+					IJ.showStatus("Constructing image");
+					ImagePlus imp = 
+							new ImagePlus(name + ", subimage " + (noSubHor * m + n + 1) +
+									" (x = " + subimageX + ", y = " +	subimageY + ")", 
+									stack);
+					
+					new ImageConverter(imp).convertRGBStackToRGB();
+					
+					imp.show();
+					
+					Roi roi = new Roi((int) (subimageX/ratioImageThumbX), 
+									(int) (subimageY/ratioImageThumbY), 
+									(int) (subWidth/ratioImageThumbX), 
+									(int) (subHeight/ratioImageThumbY));
+					roi.setName("Sub" + (noSubHor * m + n + 1));
+					roi.setColor(Color.green);
+					ol.addElement(roi);
+				}
+			}
+			
 			impThumb.setOverlay(ol);
 			
 			r.close();
 			IJ.showStatus("");
-			
 		}
 		catch (FormatException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
