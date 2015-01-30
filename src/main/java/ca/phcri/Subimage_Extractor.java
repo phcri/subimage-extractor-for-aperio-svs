@@ -286,7 +286,9 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 					ol.addElement(roi);
 				}
 			}
-			
+			ol.drawNames(true);
+			ol.setLabelColor(Color.gray);
+			ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
 			impThumb.setOverlay(ol);
 			
 			r.close();
