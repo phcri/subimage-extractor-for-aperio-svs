@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>ca.phcri</groupId>
   <artifactId>SubimageExtractor</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>0.3.1-SNAPSHOT</version>
   <name>Subimage Extractor for Aperio SVS</name>
   <description>ImageJ plugin to extract small images from an Aperio SVS file</description>
   <organization>
