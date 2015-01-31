@@ -11,6 +11,7 @@ package ca.phcri;
  */
 
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.OpenDialog;
@@ -32,6 +33,14 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.border.TitledBorder;
+
 
 /**
  * An ImageJ plugin that uses Bio-Formats to open and save 
@@ -48,7 +57,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private ImagePlus impThumb;
 	Roi sectionLocation;
 
-	PlugInFrame rg;
+	JFrame rg;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimagesSpecifiedBy = 
 		{"Subimage Number", "Space between Subimages"};
@@ -65,9 +74,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private int rectX, rectY;
 	private int rectWidth, rectHeight;
 	private String err;
+	private static Image iconImg;
 	
 	
 	public void run(String arg) {
+		if(iconImg == null) getIconImage();
 		openThumb(arg);
 	}
 
@@ -121,25 +132,36 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		roiGetter();
 	}
 	
+
+	void getIconImage(){
+		ImageJ ij = IJ.getInstance();
+		iconImg = ij.getIconImage();
+	}
 	
 	void roiGetter(){
-		rg = new PlugInFrame("set ROI");
+		rg = new JFrame("set ROI");
 		rg.setSize(200, 100);
-		Button b1 = new Button("OK");
-		b1.setSize(100, 100);
-		Button b2 = new Button("Cancel");
-		b2.setSize(50, 50);
+		//rg.setLayout(new BorderLayout());
+		
+		JPanel p1 = new JPanel(true);
+		JButton b1 = new JButton("OK");
+		JButton b2 = new JButton("Cancel");
 		b1.addActionListener(this);
 		b2.addActionListener(this);
+		b1.setActionCommand("b1OK");
+		b2.setActionCommand("b2Cancel");
 		
-		rg.add(b1);
-		rg.add(b2);
+		p1.setLayout(new FlowLayout());
+		p1.add(b1);
+		p1.add(b2);
+		//rg.add("South", p1);
+		rg.add(p1);
 		
 		rg.setVisible(true);
 	}
 	
 	public void actionPerformed(ActionEvent e){
-		if("OK".equals(e.getActionCommand())){
+		if("b1OK".equals(e.getActionCommand())){
 			Roi sectionLocation = impThumb.getRoi();
 			
 			if(sectionLocation != null){
@@ -161,7 +183,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			
 
 		}
-		if("Cancel".equals(e.getActionCommand())){
+		if("b2Cancel".equals(e.getActionCommand())){
 			impThumb.close();
 			rg.dispose();
 		}
@@ -174,9 +196,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.addNumericField("Subimage Height:", subHeight, 0);
 		gd.addRadioButtonGroup("Subimage selection: ", subimagesSpecifiedBy,
 				2, 1, subimagesSpecifiedBy[NUMBER]);
+		
 		gd.addNumericField("Number of Subimages Horizontally", noSubHor, 0);
 		gd.addNumericField("Number of Subimages Vertically", noSubVert, 0);
-		gd.addNumericField("Space between Subimages Horizontally", spaceHor, 0);
+		gd.addNumericField("Horizontally", spaceHor, 0);
 		gd.addNumericField("Space between Subimages Vertically", spaceVert, 0);
 		gd.addRadioButtonGroup("Subimage location: ", subimagesLocatedBy,
 				3, 1, subimagesLocatedBy[RANDOM]);
@@ -185,6 +208,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		
 		gd.addDialogListener(this);
 		gd.showDialog();
+		
+		
+		
+		
 		
 		if (gd.wasCanceled()) return;
 		if (gd.wasOKed()){
@@ -195,6 +222,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				impThumb.close();
 			}
 		}
+		
+		
 	}
 	
 	
