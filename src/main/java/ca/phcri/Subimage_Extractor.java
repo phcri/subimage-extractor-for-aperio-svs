@@ -32,6 +32,8 @@ import ij.gui.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -140,22 +142,35 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	
 	void roiGetter(){
 		rg = new JFrame("set ROI");
-		rg.setSize(200, 100);
-		//rg.setLayout(new BorderLayout());
+		rg.setSize(200, 200);
+		rg.setLayout(new GridLayout(3, 1));
 		
-		JPanel p1 = new JPanel(true);
+		JPanel p1 = new JPanel(new FlowLayout(), true);
+		JPanel p2 = new JPanel(new FlowLayout(), true);
+		JPanel p3 = new JPanel(new FlowLayout(), true);
 		JButton b1 = new JButton("OK");
 		JButton b2 = new JButton("Cancel");
 		b1.addActionListener(this);
 		b2.addActionListener(this);
 		b1.setActionCommand("b1OK");
 		b2.setActionCommand("b2Cancel");
+
+		p3.add(b1);
+		p3.add(b2);
 		
-		p1.setLayout(new FlowLayout());
-		p1.add(b1);
-		p1.add(b2);
-		//rg.add("South", p1);
 		rg.add(p1);
+		rg.add(p2);
+		rg.add(p3);
+		
+		rg.addWindowListener(
+				new WindowAdapter(){
+					@Override
+					public void windowClosing(WindowEvent e){
+						impThumb.close();
+						rg.dispose();
+					}
+				}
+		);
 		
 		rg.setVisible(true);
 	}
