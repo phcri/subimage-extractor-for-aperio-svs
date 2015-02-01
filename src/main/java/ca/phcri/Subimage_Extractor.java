@@ -1,13 +1,11 @@
 package ca.phcri;
 
-/*
- * #%L
+/* 
  * This plugin is written to extract subimages from Aperio SVS by 
  * modifying the Read_Image.java.
  * (http://www.openmicroscopy.org/site/support/bio-formats5/developers/java-library.html)
  * (https://github.com/openmicroscopy/bioformats/blob/v5.0.6/
  * components/bio-formats-plugins/utils/Read_Image.java).
- * #L%
  */
 
 import ij.IJ;
@@ -35,6 +33,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+
+
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -44,7 +44,7 @@ import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 
 
-/**
+/*
  * An ImageJ plugin that uses Bio-Formats to open and save 
  * regions of SVS file at highest magnification.
  */
@@ -54,15 +54,15 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private int startX, startY;
 	private static int subWidth = 1028, subHeight = 768,
 			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
-	private static String specification, location;
+	private static String spacing, location;
 	
 	private ImagePlus impThumb;
 	Roi sectionLocation;
 
 	JFrame rg;
 	private static int subsStartX, subsStartY;
-	private static final String[] subimagesSpecifiedBy = 
-		{"Subimage Number", "Space between Subimages"};
+	private static final String[] subimageSpacingSpecifiedBy = 
+		{"the number of Subimages", "Space between Subimages"};
 	private static final int NUMBER = 0, SPACE = 1;
 
 	private static final String[] subimagesLocatedBy = 
@@ -76,6 +76,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private int rectX, rectY;
 	private int rectWidth, rectHeight;
 	private String err;
+	private CheckboxGroup cg1;
 	private static Image iconImg;
 	
 	
@@ -206,16 +207,21 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	
 	
 	void askSettings() {		
-		GenericDialog gd = new GenericDialog("Subimage location and size...");
+		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
 		gd.addNumericField("Subimage Width:", subWidth, 0);
 		gd.addNumericField("Subimage Height:", subHeight, 0);
-		gd.addRadioButtonGroup("Subimage selection: ", subimagesSpecifiedBy,
-				2, 1, subimagesSpecifiedBy[NUMBER]);
 		
-		gd.addNumericField("Number of Subimages Horizontally", noSubHor, 0);
-		gd.addNumericField("Number of Subimages Vertically", noSubVert, 0);
+		addMessage(gd, "Subimage Spacing: ");
+		cg1 = new CheckboxGroup();
+		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, true);
+		gd.addNumericField("Horizontally", noSubHor, 0);
+		gd.addNumericField("Vertically", noSubVert, 0);
+		
+		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, false);
 		gd.addNumericField("Horizontally", spaceHor, 0);
-		gd.addNumericField("Space between Subimages Vertically", spaceVert, 0);
+		gd.addNumericField("Vertically", spaceVert, 0);
+		
+		
 		gd.addRadioButtonGroup("Subimage location: ", subimagesLocatedBy,
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
@@ -225,7 +231,9 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.showDialog();
 		
 		
-		
+
+		Component[] comp = gd.getComponents();
+		//for (int i = 1; i < 1; i++) comp[i].setVisible(false);
 		
 		
 		if (gd.wasCanceled()) return;
@@ -246,7 +254,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
 		subWidth = (int) gd.getNextNumber();
 		subHeight = (int) gd.getNextNumber();
-		specification = gd.getNextRadioButton();
+		spacing = radioButtonCheck(cg1);
 		noSubHor = (int) gd.getNextNumber();
 		noSubVert = (int) gd.getNextNumber();
 		spaceHor = (int) gd.getNextNumber();
@@ -256,7 +264,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		subsStartY = (int) gd.getNextNumber();
 		err = "";
 		
-		if(specification.equals(subimagesSpecifiedBy[NUMBER])){
+		if(spacing.equals(subimageSpacingSpecifiedBy[NUMBER])){
 			spaceHor = 
 				(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
 			
@@ -267,7 +275,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		appX = subWidth + spaceHor;
 		appY = subHeight + spaceVert;
 		
-		if(specification.equals(subimagesSpecifiedBy[SPACE])){
+		if(spacing.equals(subimageSpacingSpecifiedBy[SPACE])){
 			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
 			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
 		}
@@ -381,4 +389,48 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
 		impThumb.setOverlay(ol);
 	}
+
+	void addRadioButton(GenericDialog gd, String item, CheckboxGroup cg, boolean selected){
+		addRadioButton(gd, item, cg, true, selected);
+	}
+
+	
+	void addRadioButton(GenericDialog gd, String item, CheckboxGroup cg,
+			boolean underLabel, boolean selected){
+		Panel panel = new Panel();
+		panel.setLayout(new GridLayout(1, 1, 0, 0));
+
+        Checkbox cb = new Checkbox(item, cg, selected);
+        cb.addItemListener(gd);
+        panel.add(cb);
+        
+        Insets insets = new Insets(5, 10, 0, 0);
+
+        if (underLabel) {
+        	insets.top = 2;
+        	insets.left += 10;
+        } else{
+        	insets.top += 5;
+        }        
+       gd.addPanel(panel, GridBagConstraints.WEST, insets);
+	}
+	
+	void addMessage(GenericDialog gd, String text){
+		Panel panel = new Panel();
+		Component theLabel = new Label(text);
+		panel.add(theLabel);
+		Insets insets = new Insets(10, 10, 0, 0);
+		gd.addPanel(panel, GridBagConstraints.WEST, insets);
+	}
+	
+	
+	
+	 String radioButtonCheck(CheckboxGroup cg) {
+	        Checkbox checkbox = cg.getSelectedCheckbox();
+	        String item = "null";
+	        if (checkbox!=null)
+	            item = checkbox.getLabel();
+	        return item;
+	    }
+
 }
