@@ -10,6 +10,7 @@ package ca.phcri;
 
 import ij.IJ;
 import ij.ImageJ;
+import ij.ImageListener;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.OpenDialog;
@@ -29,8 +30,15 @@ import ij.gui.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+
+
+
+
 
 
 import javax.swing.JButton;
@@ -43,24 +51,25 @@ import javax.swing.JPanel;
  * regions of SVS file at highest magnification.
  */
 
-public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener {
+public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener, 
+MouseMotionListener {
 	private String dir, name, id;
 	private static int subWidth = 1028, subHeight = 768,
 			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
-	private static String spacing, location;
 	
-	private ImagePlus impThumb;
-	//private Roi sectionLocation;
+	private static ImagePlus impThumb;
 
 	private JFrame rg;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimageSpacingSpecifiedBy = 
 		{"the number of Subimages", "Space between Subimages"};
 	private static final int NUMBER = 0, SPACE = 1;
-
+	private static String spacing = subimageSpacingSpecifiedBy[NUMBER];
 	private static final String[] subimagesLocatedBy = 
 		{"Random offset", "Fix to the upper left corner of the ROI", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
+	private static String location = subimagesLocatedBy[STARTINGPOINT];
+	
 	private Random random = new Random(System.currentTimeMillis());
 	private int appX, appY;
 	private int imageWidth, imageHeight;
@@ -72,7 +81,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private CheckboxGroup cg1;
 	private static Image iconImg;
 	private Component[] components;
-	private boolean cg1EqualsSpace;
+	private static boolean cg1EqualsNumber = true;
 	private static final int[] numberFields = {6, 7, 8, 9};
 	private static final int[] spaceFields = {11, 12, 13, 14};
 	private static final int[] manualFields = {17, 18, 19, 20};
@@ -122,7 +131,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			
 
 			new ImageConverter(impThumb).convertRGBStackToRGB();
+			
 			impThumb.show();
+			
+			ImageCanvas ic = impThumb.getCanvas();
+			ic.addMouseMotionListener(this);
 			
 			r.close();
 			IJ.showStatus("");
@@ -137,7 +150,38 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		roiGetter();
 	}
 	
+	
 
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		Roi sectionLocation = impThumb.getRoi();
+		if(sectionLocation != null){
+			Rectangle selectionRect = sectionLocation.getBounds();
+			rectX = selectionRect.x;
+			rectY = selectionRect.y;
+			rectWidth = selectionRect.width;
+			rectHeight = selectionRect.height;
+		}
+		
+		
+		
+		IJ.log("rectX: " + rectX);
+		IJ.log("recty: " + rectY);
+		IJ.log("rectWidth: " + rectWidth);
+		IJ.log("rectHeight: " + rectHeight + "\n");
+		
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	
+	
+	
 	void getIconImage(){
 		ImageJ ij = IJ.getInstance();
 		iconImg = ij.getIconImage();
@@ -153,6 +197,9 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		JPanel p3 = new JPanel();
 		JButton b1 = new JButton("OK");
 		JButton b2 = new JButton("Cancel");
+		
+		
+		
 		b1.addActionListener(this);
 		b2.addActionListener(this);
 		b1.setActionCommand("b1OK");
@@ -177,8 +224,12 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 
 		rg.pack();
 		rg.setVisible(true);
+		
+		
 	}
 	
+	
+
 	@Override
 	public void actionPerformed(ActionEvent e){
 		if("b1OK".equals(e.getActionCommand())){
@@ -189,12 +240,13 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				sectionLocation.setStrokeColor(Color.yellow);
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
-
+				/*
 				Rectangle selectionRect = sectionLocation.getBounds();
 				rectX = selectionRect.x;
 				rectY = selectionRect.y;
 				rectWidth = selectionRect.width;
 				rectHeight = selectionRect.height;
+				*/
 				askSettings();
 			
 			} else
@@ -210,10 +262,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	
 	void askSettings() {
 		
-		if(noSubHor * noSubVert > 500 || 
-				((int) (rectWidth * ratioImageThumbX/ (subWidth + spaceHor)) + 1) * 
-				((int) (rectHeight * ratioImageThumbY / (subHeight + spaceVert)) + 1)
-				> 500){
+		if(appX == 0){
 			noSubHor = 3;
 			noSubVert = 3;
 			spaceHor = 
@@ -222,21 +271,22 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			spaceVert = 
 					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert
 							- subHeight);
+			appX = subWidth + spaceHor;
+			appY = subHeight + spaceVert;
 		}
-		
-		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
 		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
 		gd.addNumericField("Subimage Width:", subWidth, 0);
 		gd.addNumericField("Subimage Height:", subHeight, 0);
 		
-		addMessage(gd, "Spacing of Subimages: ");
+		gd.setInsets(10, 10, 0);
+		gd.addMessage("Spacing of Subimages: ");
 		cg1 = new CheckboxGroup();
-		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, !cg1EqualsSpace);
+		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, cg1EqualsNumber);
 		gd.addNumericField("Horizontally", noSubHor, 0);
 		gd.addNumericField("Vertically", noSubVert, 0);
 		
-		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, cg1EqualsSpace);
+		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, !cg1EqualsNumber);
 		gd.addNumericField("Horizontally", spaceHor, 0);
 		gd.addNumericField("Vertically", spaceVert, 0);
 		
@@ -246,20 +296,18 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
 		
-		
-
 		components = gd.getComponents();
 		
-		if(cg1EqualsSpace){
+		if(cg1EqualsNumber){
 			for (int i : numberFields)
-				components[i].setEnabled(false);
-			for (int i : spaceFields)
 				components[i].setEnabled(true);
+			for (int i : spaceFields)
+				components[i].setEnabled(false);
 		} else {
 			for (int i : numberFields)
-				components[i].setEnabled(true);
-			for (int i : spaceFields)
 				components[i].setEnabled(false);
+			for (int i : spaceFields)
+				components[i].setEnabled(true);
 		}
 		
 		for (int i : manualFields)
@@ -271,9 +319,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		spaceHorInput = (TextField) components[12];
 		spaceVertInput = (TextField) components[14];
 		
-		
+		drawSubimagesOnThumb();
 		gd.addDialogListener(this);
 		gd.showDialog();
+		
+
 		
 		
 		if (gd.wasCanceled()) {
@@ -285,6 +335,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				openSubimages();
 			else {
 				IJ.error("Subimage Extractor " + err);
+				appX = 0;
 				impThumb.close();
 			}
 		}
@@ -328,10 +379,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		spaceVert = currentSpaceVert;
 		
 		
-		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
+		cg1EqualsNumber = subimageSpacingSpecifiedBy[NUMBER].equals(spacing);
 
 		
-		if(!cg1EqualsSpace){
+		if(cg1EqualsNumber){
 			for (int i : numberFields)
 				components[i].setEnabled(true);
 			for (int i : spaceFields)
@@ -360,7 +411,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		appX = subWidth + spaceHor;
 		appY = subHeight + spaceVert;
 		
-		if(cg1EqualsSpace){
+		if(!cg1EqualsNumber){
 			for (int i : numberFields)
 				components[i].setEnabled(false);
 			for (int i : spaceFields)
@@ -516,15 +567,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
        gd.addPanel(panel, GridBagConstraints.WEST, insets);
 	}
 	
-	void addMessage(GenericDialog gd, String text){
-		Panel panel = new Panel();
-		Component theLabel = new Label(text);
-		panel.add(theLabel);
-		Insets insets = new Insets(10, 10, 0, 0);
-		gd.addPanel(panel, GridBagConstraints.WEST, insets);
-	}
-	
-	
 	
 	 String radioButtonCheck(CheckboxGroup cg) {
 	        Checkbox checkbox = cg.getSelectedCheckbox();
@@ -533,5 +575,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	            item = checkbox.getLabel();
 	        return item;
 	    }
+
 
 }
