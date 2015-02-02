@@ -66,7 +66,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private static final int NUMBER = 0, SPACE = 1;
 
 	private static final String[] subimagesLocatedBy = 
-		{"Random offset", "Starting at x = 0, y = 0", "Manual Location"};
+		{"Random offset", "Fix to the upper left corner of the ROI", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 	private Random random = new Random(System.currentTimeMillis());
 	private int appX, appY;
@@ -78,7 +78,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private String err;
 	private CheckboxGroup cg1;
 	private static Image iconImg;
-	
+	private Component[] components;
+	private boolean cg1EqualsSpace;
+	private static final int[] numberFields = {6, 7, 8, 9};
+	private static final int[] spaceFields = {11, 12, 13, 14};
+	private static final int[] manualFields = {17, 18, 19, 20};
 	
 	public void run(String arg) {
 		if(iconImg == null) getIconImage();
@@ -205,19 +209,36 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		}
 	}
 	
+
 	
-	void askSettings() {		
+	void askSettings() {
+		
+		if(noSubHor * noSubVert > 500 || 
+				((int) (rectWidth * ratioImageThumbX/ (subWidth + spaceHor)) + 1) * 
+				((int) (rectHeight * ratioImageThumbY / (subHeight + spaceVert)) + 1) > 500){
+			noSubHor = 3;
+			noSubVert = 3;
+			spaceHor = 
+					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor
+							- subWidth);
+			spaceVert = 
+					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert
+							- subHeight);
+		}
+		
+		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
+		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
 		gd.addNumericField("Subimage Width:", subWidth, 0);
 		gd.addNumericField("Subimage Height:", subHeight, 0);
 		
 		addMessage(gd, "Subimage Spacing: ");
 		cg1 = new CheckboxGroup();
-		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, true);
+		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, !cg1EqualsSpace);
 		gd.addNumericField("Horizontally", noSubHor, 0);
 		gd.addNumericField("Vertically", noSubVert, 0);
 		
-		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, false);
+		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, cg1EqualsSpace);
 		gd.addNumericField("Horizontally", spaceHor, 0);
 		gd.addNumericField("Vertically", spaceVert, 0);
 		
@@ -227,13 +248,30 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
 		
+		
+
+		components = gd.getComponents();
+		
+		if(cg1EqualsSpace){
+			for (int i : numberFields)
+				components[i].setEnabled(false);
+			for (int i : spaceFields)
+				components[i].setEnabled(true);
+		} else {
+			for (int i : numberFields)
+				components[i].setEnabled(true);
+			for (int i : spaceFields)
+				components[i].setEnabled(false);
+		}
+		
+		for (int i : manualFields)
+			components[i].setEnabled(false);
+		
+		
 		gd.addDialogListener(this);
 		gd.showDialog();
 		
-		
 
-		Component[] comp = gd.getComponents();
-		//for (int i = 1; i < 1; i++) comp[i].setVisible(false);
 		
 		
 		if (gd.wasCanceled()) return;
@@ -264,41 +302,69 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		subsStartY = (int) gd.getNextNumber();
 		err = "";
 		
-		if(spacing.equals(subimageSpacingSpecifiedBy[NUMBER])){
+		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
+
+		
+		if(!cg1EqualsSpace){
+			for (int i : numberFields)
+				components[i].setEnabled(true);
+			for (int i : spaceFields)
+				components[i].setEnabled(false);
+			if(noSubHor <= 0 || noSubVert <= 0){
+				err = "Number of Subimages should be positive";
+			} else {
 			spaceHor = 
 				(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
 			
 			spaceVert = 
 				(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert - subHeight);
+			}
 		}
+		
 		
 		appX = subWidth + spaceHor;
 		appY = subHeight + spaceVert;
 		
-		if(spacing.equals(subimageSpacingSpecifiedBy[SPACE])){
+		if(cg1EqualsSpace){
+			for (int i : numberFields)
+				components[i].setEnabled(false);
+			for (int i : spaceFields)
+				components[i].setEnabled(true);
 			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
 			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
 		}
 		
-		if(noSubHor <= 0 || noSubVert <= 0)
-			err = "Number of Subimages should be positive";
 
-		
-		if(location.equals(subimagesLocatedBy[RANDOM])){
-			subsStartX = (int) (random.nextInt(appX) - subWidth + rectX * ratioImageThumbX);
-			subsStartY = (int) (random.nextInt(appY) - subHeight + rectY * ratioImageThumbY);
-		} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
-			subsStartX = (int) (rectX * ratioImageThumbX);
-			subsStartY = (int) (rectY * ratioImageThumbY);
+
+		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
+			for (int i : manualFields)
+				components[i].setEnabled(true);
+		} else {
+			for (int i : manualFields)
+				components[i].setEnabled(false);
+			
+			if(location.equals(subimagesLocatedBy[RANDOM])){
+				subsStartX = (int) (random.nextInt(appX) - subWidth + 
+						rectX * ratioImageThumbX);
+				subsStartY = (int) (random.nextInt(appY) - subHeight + 
+						rectY * ratioImageThumbY);
+			} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
+				subsStartX = (int) (rectX * ratioImageThumbX);
+				subsStartY = (int) (rectY * ratioImageThumbY);
+			}
 		}
+
+		if(noSubHor * noSubVert > 500)
+			err = "Not allowed to open more than 500 subimages";
 		
-		if("".equals(err)) {
+		if(!"".equals(err)) {
 			IJ.showStatus(err);
 			return true;
 		}
 		
 		
 		drawSubimagesOnThumb();
+		
 		return true;
 	}
 
@@ -390,13 +456,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		impThumb.setOverlay(ol);
 	}
 
-	void addRadioButton(GenericDialog gd, String item, CheckboxGroup cg, boolean selected){
-		addRadioButton(gd, item, cg, true, selected);
-	}
+
 
 	
-	void addRadioButton(GenericDialog gd, String item, CheckboxGroup cg,
-			boolean underLabel, boolean selected){
+	void addRadioButton(GenericDialog gd, String item, CheckboxGroup cg, boolean selected){
 		Panel panel = new Panel();
 		panel.setLayout(new GridLayout(1, 1, 0, 0));
 
@@ -406,12 +469,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
         
         Insets insets = new Insets(5, 10, 0, 0);
 
-        if (underLabel) {
-        	insets.top = 2;
-        	insets.left += 10;
-        } else{
-        	insets.top += 5;
-        }        
+        insets.top += 5;
        gd.addPanel(panel, GridBagConstraints.WEST, insets);
 	}
 	
