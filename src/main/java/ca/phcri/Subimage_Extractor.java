@@ -65,7 +65,7 @@ import javax.swing.event.DocumentListener;
 
 public class Subimage_Extractor implements 
 //PlugIn, DialogListener, ActionListener, DocumentListener {
-PlugIn, DialogListener, ActionListener, MouseMotionListener {
+PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 
 
 	private String dir, name, id;
@@ -159,9 +159,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 					new MouseAdapter(){
 						@Override
 						public void mouseReleased(MouseEvent e){
-							mouseReleased = true;
-							IJ.log("mouseReleased");
-							if(mouseReleased) IJ.log("mouseReleased true");
+							inputByMouseDragged = false;
+							//IJ.log("mouseReleased");
+							//if(!inputByMouseDragged) IJ.log("inputByMouseDragged set false");
+							//else IJ.log("inputByMouse could not set false");
 						}
 					}
 				);
@@ -197,7 +198,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		Roi sectionLocation = impThumb.getRoi();
 		
 		if(sectionLocation != null){
-			
+			inputByMouseDragged = true;
 			Rectangle selectionRect = sectionLocation.getBounds();
 			rectX = selectionRect.x;
 			rectY = selectionRect.y;
@@ -242,7 +243,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
 			p2.add(l);
 			JTextField tf = new JTextField(6);
-			//tf.getDocument().addDocumentListener(this);
+			tf.getDocument().addDocumentListener(this);
 			l.setLabelFor(tf);
 			p2.add(tf);
 		}
@@ -288,7 +289,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		rg.setVisible(true);	
 	}
 	
-	/*
+	
 	@Override
 	public void insertUpdate(DocumentEvent e) {
 		drawRoi(e);
@@ -306,51 +307,24 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 	
 	
 	void drawRoi(DocumentEvent e){
-		IJ.log("drawRoi actionCount" + actionCount);
+		//IJ.log("drawRoi");
 		
-		if(inputByMouseDragged){ 
-			if(!mouseReleased) {
-				IJ.log("mouse button being pressed");
-				return;
-			}else {
-				IJ.log(e.getDocument().getDefaultRootElement().getName());
-				IJ.log("mouse released");
-			}
-		}
+		if(inputByMouseDragged) return;
 		
-		{
-			
-			if(actionCount < 3) {
-				actionCount ++;
-				return;
-			} else {
-				//inputByMouseDragged = false;
-				//return;
-			}
-			
-			IJ.log("inputByMouseDragged true");
-			
+		//IJ.log("drawRoi input");
+		int valueX = 
+				(int) (Integer.parseInt(inputX.getText()) / ratioImageThumbX);
+		int valueY = 
+				(int) (Integer.parseInt(inputY.getText()) / ratioImageThumbY);
+		int valueWidth = 
+				(int) (Integer.parseInt(inputWidth.getText()) / ratioImageThumbX);
+		int valueHeight = 
+				(int) (Integer.parseInt(inputHeight.getText()) / ratioImageThumbY);
 		
-			
-		 else {
-			int valueX = 
-					(int) (Integer.parseInt(inputX.getText()) / ratioImageThumbX);
-			int valueY = 
-					(int) (Integer.parseInt(inputY.getText()) / ratioImageThumbY);
-			int valueWidth = 
-					(int) (Integer.parseInt(inputWidth.getText()) / ratioImageThumbX);
-			int valueHeight = 
-					(int) (Integer.parseInt(inputHeight.getText()) / ratioImageThumbY);
-			
-			impThumb.setRoi(valueX, valueY, valueWidth, valueHeight);
-			
-			IJ.log("inputByMouseDragged false");
-		}
-		
-		IJ.log("action performed");
-
+		impThumb.setRoi(valueX, valueY, valueWidth, valueHeight);
+		return;
 	}
-	*/
+
 	
 	
 	@Override
