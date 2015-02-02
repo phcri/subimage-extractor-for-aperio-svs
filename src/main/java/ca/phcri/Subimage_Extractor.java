@@ -158,9 +158,6 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 						@Override
 						public void mouseReleased(MouseEvent e){
 							inputByMouseDragged = false;
-							//IJ.log("mouseReleased");
-							//if(!inputByMouseDragged) IJ.log("inputByMouseDragged set false");
-							//else IJ.log("inputByMouse could not set false");
 						}
 					}
 				);
@@ -224,18 +221,18 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	void roiGetter(){
 		rg = new JFrame("set ROI");
-		JPanel p = new JPanel();
+		JPanel p = new JPanel(false);
 		p.setLayout(new BoxLayout(p, BoxLayout.PAGE_AXIS));
 		rg.setIconImage(iconImg);
 		
-		JPanel p1 = new JPanel();
+		JPanel p1 = new JPanel(false);
 		JLabel lab1 = new JLabel("<html>Draw a rectangle to cover <BR>" +
 				"a region of interest and press \"OK\". <BR>"
 				+ "You can also specify the ROI by inputting values <BR>"
 				+ "in the boxes below</html>");
 		p1.add(lab1);
 		
-		JPanel p2 = new JPanel(new SpringLayout());
+		JPanel p2 = new JPanel(new SpringLayout(), false);
 		String[] inputRoi = {"x", "y", "Width", "Height"};
 		for (int i = 0; i < 4; i++){
 			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
@@ -249,7 +246,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		SpringUtilities.makeCompactGrid(p2, 4, 2, 6, 6, 6, 6);
 		p2.setBorder(new TitledBorder("ROI location and size"));
 		
-		JPanel p3 = new JPanel();
+		JPanel p3 = new JPanel(false);
 		JButton b1 = new JButton("OK");
 		JButton b2 = new JButton("Cancel");
 		b1.addActionListener(this);
@@ -305,24 +302,18 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	
 	void drawRoi(DocumentEvent e){
-		//IJ.log("drawRoi");
-		
 		if(inputByMouseDragged) return;
 		
-		//IJ.log("drawRoi input");
-		int valueX = 
+		int rectX = 
 				(int) (Integer.parseInt(inputX.getText()) / ratioImageThumbX);
-		int valueY = 
+		int rectY = 
 				(int) (Integer.parseInt(inputY.getText()) / ratioImageThumbY);
-		int valueWidth = 
+		int rectWidth = 
 				(int) (Integer.parseInt(inputWidth.getText()) / ratioImageThumbX);
-		int valueHeight = 
+		int rectHeight = 
 				(int) (Integer.parseInt(inputHeight.getText()) / ratioImageThumbY);
 		
-		impThumb.setRoi(valueX, valueY, valueWidth, valueHeight);
-		
-		
-		return;
+		impThumb.setRoi(rectX, rectY, rectWidth, rectHeight);
 	}
 
 	
@@ -364,12 +355,6 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			spaceVert = 
 					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert
 							- subHeight);
-			/*
-			appX = subWidth + spaceHor;
-			appY = subHeight + spaceVert;
-			subsStartX = (int) (rectX * ratioImageThumbX);
-			subsStartY = (int) (rectY * ratioImageThumbY);
-			*/
 		}
 		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
