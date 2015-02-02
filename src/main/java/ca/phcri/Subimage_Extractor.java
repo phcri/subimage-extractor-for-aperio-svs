@@ -35,6 +35,10 @@ import java.awt.event.WindowEvent;
 
 
 
+
+
+
+
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -83,6 +87,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private static final int[] numberFields = {6, 7, 8, 9};
 	private static final int[] spaceFields = {11, 12, 13, 14};
 	private static final int[] manualFields = {17, 18, 19, 20};
+	private boolean spacingFieldChange = false;
+	private int count = 2;
+	private TextField noSubHorInput, noSubVertInput;
+	private TextField spaceHorInput, spaceVertInput;
 	
 	public void run(String arg) {
 		if(iconImg == null) getIconImage();
@@ -215,7 +223,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		
 		if(noSubHor * noSubVert > 500 || 
 				((int) (rectWidth * ratioImageThumbX/ (subWidth + spaceHor)) + 1) * 
-				((int) (rectHeight * ratioImageThumbY / (subHeight + spaceVert)) + 1) > 500){
+				((int) (rectHeight * ratioImageThumbY / (subHeight + spaceVert)) + 1)
+				> 500){
 			noSubHor = 3;
 			noSubVert = 3;
 			spaceHor = 
@@ -267,11 +276,15 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		for (int i : manualFields)
 			components[i].setEnabled(false);
 		
+		//parts to avoid flickering
+		noSubHorInput = (TextField) components[7];
+		noSubVertInput = (TextField) components[9];
+		spaceHorInput = (TextField) components[12];
+		spaceVertInput = (TextField) components[14];
+		
 		
 		gd.addDialogListener(this);
 		gd.showDialog();
-		
-
 		
 		
 		if (gd.wasCanceled()) return;
@@ -290,17 +303,41 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	
 	@Override
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
+		//parts to avoid flickering
+		//Because two numeric fields are changed automatically,
+		//there are two unnecessary cycles of calculations triggered by the listener.
+		if(count < 2) {
+			count ++;
+			return true;
+		}
+		
+		
+		
 		subWidth = (int) gd.getNextNumber();
 		subHeight = (int) gd.getNextNumber();
 		spacing = radioButtonCheck(cg1);
-		noSubHor = (int) gd.getNextNumber();
-		noSubVert = (int) gd.getNextNumber();
-		spaceHor = (int) gd.getNextNumber();
-		spaceVert = (int) gd.getNextNumber();
+		int currentNoSubHor = (int) gd.getNextNumber();
+		int currentNoSubVert = (int) gd.getNextNumber();
+		int currentSpaceHor = (int) gd.getNextNumber();
+		int currentSpaceVert = (int) gd.getNextNumber();
 		location = gd.getNextRadioButton();
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
 		err = "";
+		
+		
+		//parts to avoid flickering
+		if(currentNoSubHor != noSubHor || currentNoSubVert != noSubVert || 
+				currentSpaceHor != spaceHor || currentSpaceVert != spaceVert){
+			spacingFieldChange = true;
+			count = 0;
+		}
+		
+		noSubHor = currentNoSubHor;
+		noSubVert = currentNoSubVert;
+		spaceHor = currentSpaceHor;
+		spaceVert = currentSpaceVert;
+		
 		
 		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
 
@@ -313,11 +350,18 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			if(noSubHor <= 0 || noSubVert <= 0){
 				err = "Number of Subimages should be positive";
 			} else {
-			spaceHor = 
-				(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
-			
-			spaceVert = 
-				(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert - subHeight);
+				spaceHor = 
+					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
+				
+				spaceVert = 
+					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert - 
+							subHeight);
+				
+				if(spacingFieldChange){
+					spaceHorInput.setText(String.valueOf(spaceHor));
+					spaceVertInput.setText(String.valueOf(spaceVert));
+					spacingFieldChange = false;
+				}
 			}
 		}
 		
@@ -330,12 +374,22 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				components[i].setEnabled(false);
 			for (int i : spaceFields)
 				components[i].setEnabled(true);
+			
 			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
 			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
+			
+			if(spacingFieldChange){
+				noSubHorInput.setText(String.valueOf(noSubHor));
+				noSubVertInput.setText(String.valueOf(noSubVert));
+				spacingFieldChange = false;
+			}
 		}
 		
-
-
+		
+		if(noSubHor * noSubVert > 500)
+			err = "Not allowed to open more than 500 subimages";
+		
+		
 		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
 			for (int i : manualFields)
 				components[i].setEnabled(true);
@@ -351,11 +405,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
 				subsStartX = (int) (rectX * ratioImageThumbX);
 				subsStartY = (int) (rectY * ratioImageThumbY);
+				spacingFieldChange = false;
 			}
 		}
-
-		if(noSubHor * noSubVert > 500)
-			err = "Not allowed to open more than 500 subimages";
+		
 		
 		if(!"".equals(err)) {
 			IJ.showStatus(err);
@@ -364,7 +417,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		
 		
 		drawSubimagesOnThumb();
-		
 		return true;
 	}
 
@@ -459,7 +511,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 
 
 	
-	void addRadioButton(GenericDialog gd, String item, CheckboxGroup cg, boolean selected){
+	void addRadioButton(GenericDialog gd, String item, 
+			CheckboxGroup cg, boolean selected){
 		Panel panel = new Panel();
 		panel.setLayout(new GridLayout(1, 1, 0, 0));
 
