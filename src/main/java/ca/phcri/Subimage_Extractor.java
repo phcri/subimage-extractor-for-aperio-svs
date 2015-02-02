@@ -12,11 +12,17 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.WindowManager;
 import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Random;
 
 import loci.formats.ChannelSeparator;
@@ -25,15 +31,20 @@ import loci.plugins.config.SpringUtilities;
 import loci.plugins.util.ImageProcessorReader;
 import loci.plugins.util.LociPrefs;
 import ij.process.ImageConverter;
+import ij.text.TextPanel;
+import ij.text.TextWindow;
 import ij.gui.*;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -43,6 +54,8 @@ import javax.swing.JTextField;
 import javax.swing.SpringLayout;
 import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 
 /*
@@ -50,7 +63,11 @@ import javax.swing.border.TitledBorder;
  * regions of SVS file at highest magnification.
  */
 
-public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener, MouseMotionListener {
+public class Subimage_Extractor implements 
+//PlugIn, DialogListener, ActionListener, DocumentListener {
+PlugIn, DialogListener, ActionListener, MouseMotionListener {
+
+
 	private String dir, name, id;
 	private static int subWidth = 1028, subHeight = 768,
 			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
@@ -88,6 +105,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private TextField noSubHorInput, noSubVertInput;
 	private TextField spaceHorInput, spaceVertInput;
 	private JTextField inputX ,inputY, inputWidth, inputHeight;
+	private boolean inputByMouseDragged;
+	private int actionCount = 3;
+	protected boolean mouseReleased;
+	private static boolean openInStack = true;
 	
 	@Override
 	public void run(String arg) {
@@ -117,16 +138,16 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 
 			int num = r.getImageCount();
 			
-			ImageStack stack = new ImageStack(thumbWidth, thumbHeight);
+			ImageStack stackInRGB = new ImageStack(thumbWidth, thumbHeight);
 
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
 				ImageProcessor ip = r.openThumbProcessors(i)[0];
-				stack.addSlice("" + (i + 1), ip);
+				stackInRGB.addSlice("" + (i + 1), ip);
 			}
 			
 			IJ.showStatus("Constructing image");
-			impThumb = new ImagePlus("thumbnail of " + name, stack);
+			impThumb = new ImagePlus("thumbnail of " + name, stackInRGB);
 			
 
 			new ImageConverter(impThumb).convertRGBStackToRGB();
@@ -134,6 +155,18 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			impThumb.show();
 			
 			ImageCanvas ic = impThumb.getCanvas();
+			
+			/*
+			ic.addMouseListener(
+					new MouseAdapter(){
+						@Override
+						public void mouseReleased(MouseEvent e){
+							mouseReleased = true;
+							roiToFields();
+						}
+					}
+				);
+			*/
 			ic.addMouseMotionListener(this);
 			
 			ImageWindow iw = impThumb.getWindow();
@@ -160,25 +193,22 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		roiGetter();
 	}
 	
-	
-
-
 	@Override
 	public void mouseDragged(MouseEvent e) {
 		Roi sectionLocation = impThumb.getRoi();
+		
 		if(sectionLocation != null){
+			
 			Rectangle selectionRect = sectionLocation.getBounds();
 			rectX = selectionRect.x;
 			rectY = selectionRect.y;
 			rectWidth = selectionRect.width;
 			rectHeight = selectionRect.height;
 			
-			
 			inputX.setText(String.valueOf((int) (rectX * ratioImageThumbX)));
 			inputY.setText(String.valueOf((int) (rectY * ratioImageThumbY)));
 			inputWidth.setText(String.valueOf((int) (rectWidth * ratioImageThumbX)));
 			inputHeight.setText(String.valueOf((int) (rectHeight * ratioImageThumbY)));
-			
 		}
 	}
 
@@ -187,7 +217,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		// TODO Auto-generated method stub
 		
 	}
-	
 	
 	
 	void getIconImage(){
@@ -213,9 +242,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		for (int i = 0; i < 4; i++){
 			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
 			p2.add(l);
-			JTextField tf = new JTextField(1);
-			tf.setActionCommand(inputRoi[i]);
-			tf.addActionListener(this);
+			JTextField tf = new JTextField(6);
+			//tf.getDocument().addDocumentListener(this);
 			l.setLabelFor(tf);
 			p2.add(tf);
 		}
@@ -245,9 +273,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		inputHeight = (JTextField) compGroup1[7];
 
 		
-		
-		
-		
 		rg.setContentPane(p);
 		
 		rg.addWindowListener(
@@ -264,10 +289,73 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		rg.setVisible(true);	
 	}
 	
+	/*
+	@Override
+	public void insertUpdate(DocumentEvent e) {
+		drawRoi(e);
+	}
+	
+	@Override
+	public void removeUpdate(DocumentEvent e) {
+		drawRoi(e);
+	}
+	
+	@Override
+	public void changedUpdate(DocumentEvent e) {
+		drawRoi(e);
+	}
+	
+	
+	void drawRoi(DocumentEvent e){
+		IJ.log("drawRoi actionCount" + actionCount);
+		
+		if(inputByMouseDragged){ 
+			if(!mouseReleased) {
+				IJ.log("mouse button being pressed");
+				return;
+			}else {
+				IJ.log(e.getDocument().getDefaultRootElement().getName());
+				IJ.log("mouse released");
+			}
+		}
+		
+		{
+			
+			if(actionCount < 3) {
+				actionCount ++;
+				return;
+			} else {
+				//inputByMouseDragged = false;
+				//return;
+			}
+			
+			IJ.log("inputByMouseDragged true");
+			
+		
+			
+		 else {
+			int valueX = 
+					(int) (Integer.parseInt(inputX.getText()) / ratioImageThumbX);
+			int valueY = 
+					(int) (Integer.parseInt(inputY.getText()) / ratioImageThumbY);
+			int valueWidth = 
+					(int) (Integer.parseInt(inputWidth.getText()) / ratioImageThumbX);
+			int valueHeight = 
+					(int) (Integer.parseInt(inputHeight.getText()) / ratioImageThumbY);
+			
+			impThumb.setRoi(valueX, valueY, valueWidth, valueHeight);
+			
+			IJ.log("inputByMouseDragged false");
+		}
+		
+		IJ.log("action performed");
+
+	}
+	*/
 	
 	
 	@Override
-	public void actionPerformed(ActionEvent e){
+	public void actionPerformed(ActionEvent e){		
 		if("b1OK".equals(e.getActionCommand())){
 			Roi sectionLocation = impThumb.getRoi();
 			
@@ -282,10 +370,12 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			} else
 				IJ.error("No selection");
 		}
+		
 		if("b2Cancel".equals(e.getActionCommand())){
 			impThumb.close();
 			rg.dispose();
 		}
+		
 	}
 	
 	
@@ -329,6 +419,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
+		gd.addCheckbox("Open in Stack", openInStack);
 		
 		compGroup2 = gd.getComponents();
 		
@@ -393,6 +484,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		location = gd.getNextRadioButton();
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
+		openInStack = gd.getNextBoolean();
 		err = "";
 		
 		//parts to avoid flickering
@@ -503,14 +595,15 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			r.setId(id);
 			r.setSeries(0);      
 			int num = r.getImageCount();
-
+			
+			ImageStack stackOutput = new ImageStack(subWidth, subHeight);
 			
 			for(int m = 0; m < noSubVert; m++) {
 				int subimageY = subsStartY + appY * m;
 				for (int n = 0; n < noSubHor; n++) {
 					int subimageX = subsStartX + appX * n;
 					
-					ImageStack stack = new ImageStack(subWidth, subHeight);
+					ImageStack stackInRGB = new ImageStack(subWidth, subHeight);
 					
 					for (int i=0; i<num; i++) {
 						IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
@@ -518,24 +611,34 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 								r.openProcessors(i, subimageX, subimageY, 
 										subWidth, subHeight)[0];
 
-						stack.addSlice("" + (i + 1), ip);
+						stackInRGB.addSlice("" + (i + 1), ip);
 					}
 					
 					IJ.showStatus("Constructing image");
 					ImagePlus imp = 
 							new ImagePlus(name + ", subimage " + (noSubHor * m + n + 1) +
 									" (x = " + subimageX + ", y = " +	subimageY + ")", 
-									stack);
+									stackInRGB);
 					
 					new ImageConverter(imp).convertRGBStackToRGB();
 					
-					imp.show();
+					if(openInStack)
+						stackOutput.addSlice(imp.getProcessor());
+					else
+						imp.show();
 				}
 			}
+			
+			if(openInStack){
+				ImagePlus impOut = new ImagePlus(name + "_SubimageStack", stackOutput);
+				impOut.show();
+			}
+				
 			
 			r.close();
 			drawSubimagesOnThumb();
 			IJ.showStatus("");
+			showParameters();
 		}
 		catch (FormatException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
@@ -579,7 +682,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	}
 	
 	
-		
+	
 	void addRadioButton(GenericDialog gd, String item, 
 			CheckboxGroup cg, boolean selected){
 		Panel panel = new Panel();
@@ -602,5 +705,79 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	            item = checkbox.getLabel();
 	        return item;
 	    }
+	 
+	 
+	 
+	 void showParameters(){
+		 DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		 Date date = new Date();
+		 String parameters = 
+				 df.format(date) + "\t" + name + "\t" + 
+						rectX + "\t" + rectY + "\t" + 
+						rectWidth + "\t" + rectHeight + "\t" + 
+						subsStartX + "\t" + subsStartY + "\t" + 
+						subWidth + "\t" + subHeight + "\t" + 
+						spaceHor + "\t" + spaceVert + "\t" + 
+						noSubHor + "\t" + noSubVert;
+			
+			showHistory(parameters);
+		}
+	 
+	 
+	 
+	 static void showHistory(String parameterOutput) {
+			String windowTitle = "Subimage Extraction History";
+				//ShowParameterWindow.java uses String "Grid History" without 
+				//referring to this windowTitle variable,
+				//so be careful to change the title this window. 
+			String fileName = "SubimageExtractionHistory.txt";
+			
+			TextWindow historyWindow = (TextWindow) WindowManager.getWindow(windowTitle);
+			
+			if (historyWindow == null) {
+				//make a new empty TextWindow with String windowTitle with headings
+				historyWindow = new TextWindow(
+						windowTitle,
+						"Date \t Filename \t ROI starting point x \t ROI starting point y \t "
+						+ "ROI width \t ROI height \t "
+						+ "Subimage starting point x \t Subimage starting point y \t "
+						+ "Subimage width \t Subimage height \t "
+						+ "Space between subimages horizontally \t "
+						+ "Space between subimages vertically \t "
+						+ "No of subimages horizontally \t "
+						+ "No of subimages vertically",
+						"", 1028, 250);
+				
+				//If a file whose name is String fileName exists in the plugin folder, 
+				//read it into the list.
+				try {
+					BufferedReader br = 
+							new BufferedReader(
+									new FileReader(IJ.getDirectory("plugins") + fileName)
+							);
+					boolean isHeadings = true;
+					while (true) {
+			            String s = br.readLine();
+			            if (s == null) break;
+			            if(isHeadings) {
+			            	isHeadings = false;
+			            	continue;
+			            }
+			            historyWindow.append(s);
+					}
+				} catch (IOException e) {}
+			}
+			
+			if(parameterOutput != null){
+				historyWindow.append(parameterOutput);
+				
+				//auto save the parameters into a file whose name is String fileName
+				TextPanel tp = historyWindow.getTextPanel();
+				tp.saveAs(IJ.getDirectory("plugins") + fileName);	
+			}
+		}
+
+	
+
 
 }
