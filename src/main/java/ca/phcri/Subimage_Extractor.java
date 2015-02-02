@@ -40,7 +40,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -106,7 +105,6 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	private TextField spaceHorInput, spaceVertInput;
 	private JTextField inputX ,inputY, inputWidth, inputHeight;
 	private boolean inputByMouseDragged;
-	private int actionCount = 3;
 	protected boolean mouseReleased;
 	private static boolean openInStack = true;
 	
@@ -242,7 +240,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		for (int i = 0; i < 4; i++){
 			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
 			p2.add(l);
-			JTextField tf = new JTextField(6);
+			JTextField tf = new JTextField();
 			tf.getDocument().addDocumentListener(this);
 			l.setLabelFor(tf);
 			p2.add(tf);
@@ -322,6 +320,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				(int) (Integer.parseInt(inputHeight.getText()) / ratioImageThumbY);
 		
 		impThumb.setRoi(valueX, valueY, valueWidth, valueHeight);
+		
+		
 		return;
 	}
 
