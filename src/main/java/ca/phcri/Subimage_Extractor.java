@@ -41,8 +41,10 @@ import java.awt.event.WindowEvent;
 
 
 
+
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 
@@ -164,13 +166,12 @@ MouseMotionListener {
 			rectHeight = selectionRect.height;
 		}
 		
-		
-		
+		/*
 		IJ.log("rectX: " + rectX);
 		IJ.log("recty: " + rectY);
 		IJ.log("rectWidth: " + rectWidth);
 		IJ.log("rectHeight: " + rectHeight + "\n");
-		
+		*/
 	}
 
 	@Override
@@ -178,7 +179,6 @@ MouseMotionListener {
 		// TODO Auto-generated method stub
 		
 	}
-
 	
 	
 	
@@ -189,28 +189,29 @@ MouseMotionListener {
 	
 	void roiGetter(){
 		rg = new JFrame("set ROI");
-		rg.setSize(200, 200);
-		rg.setLayout(new GridLayout(3, 1));
+		rg.setLayout(new GridLayout(2, 1));
+		rg.setIconImage(iconImg);
 		
 		JPanel p1 = new JPanel();
+		JLabel lab1 = new JLabel("<html>Draw a rectangle to cover <BR>" +
+				"a region of interest and press \"OK\". </html>");
+		p1.add(lab1);
+		
+		
 		JPanel p2 = new JPanel();
-		JPanel p3 = new JPanel();
 		JButton b1 = new JButton("OK");
 		JButton b2 = new JButton("Cancel");
-		
-		
 		
 		b1.addActionListener(this);
 		b2.addActionListener(this);
 		b1.setActionCommand("b1OK");
 		b2.setActionCommand("b2Cancel");
-
-		p3.add(b1);
-		p3.add(b2);
+		
+		p2.add(b1);
+		p2.add(b2);
 		
 		rg.add(p1);
 		rg.add(p2);
-		rg.add(p3);
 		
 		rg.addWindowListener(
 				new WindowAdapter(){
@@ -223,13 +224,11 @@ MouseMotionListener {
 		);
 
 		rg.pack();
-		rg.setVisible(true);
-		
-		
+		rg.setVisible(true);	
 	}
 	
 	
-
+	
 	@Override
 	public void actionPerformed(ActionEvent e){
 		if("b1OK".equals(e.getActionCommand())){
@@ -258,7 +257,7 @@ MouseMotionListener {
 		}
 	}
 	
-
+	
 	
 	void askSettings() {
 		
@@ -271,8 +270,12 @@ MouseMotionListener {
 			spaceVert = 
 					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert
 							- subHeight);
+			/*
 			appX = subWidth + spaceHor;
 			appY = subHeight + spaceVert;
+			subsStartX = (int) (rectX * ratioImageThumbX);
+			subsStartY = (int) (rectY * ratioImageThumbY);
+			*/
 		}
 		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
@@ -319,12 +322,9 @@ MouseMotionListener {
 		spaceHorInput = (TextField) components[12];
 		spaceVertInput = (TextField) components[14];
 		
-		drawSubimagesOnThumb();
+		//drawSubimagesOnThumb();
 		gd.addDialogListener(this);
 		gd.showDialog();
-		
-
-		
 		
 		if (gd.wasCanceled()) {
 			impThumb.close();
@@ -352,7 +352,6 @@ MouseMotionListener {
 			return true;
 		}
 		
-		
 		subWidth = (int) gd.getNextNumber();
 		subHeight = (int) gd.getNextNumber();
 		spacing = radioButtonCheck(cg1);
@@ -364,7 +363,6 @@ MouseMotionListener {
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
 		err = "";
-		
 		
 		//parts to avoid flickering
 		if(currentNoSubHor != noSubHor || currentNoSubVert != noSubVert || 
@@ -378,10 +376,8 @@ MouseMotionListener {
 		spaceHor = currentSpaceHor;
 		spaceVert = currentSpaceVert;
 		
-		
 		cg1EqualsNumber = subimageSpacingSpecifiedBy[NUMBER].equals(spacing);
 
-		
 		if(cg1EqualsNumber){
 			for (int i : numberFields)
 				components[i].setEnabled(true);
@@ -451,17 +447,16 @@ MouseMotionListener {
 			}
 		}
 		
-		
 		if(!"".equals(err)) {
 			IJ.showStatus(err);
 			return true;
 		}
 		
-		
 		drawSubimagesOnThumb();
 		return true;
 	}
 
+	
 	
 	void openSubimages(){
 		ImageProcessorReader r = 
@@ -519,6 +514,7 @@ MouseMotionListener {
 	}
 	
 	
+	
 	void drawSubimagesOnThumb(){
 		Overlay ol = impThumb.getOverlay();
 		
@@ -549,10 +545,9 @@ MouseMotionListener {
 		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
 		impThumb.setOverlay(ol);
 	}
-
-
-
 	
+	
+		
 	void addRadioButton(GenericDialog gd, String item, 
 			CheckboxGroup cg, boolean selected){
 		Panel panel = new Panel();
@@ -575,6 +570,5 @@ MouseMotionListener {
 	            item = checkbox.getLabel();
 	        return item;
 	    }
-
 
 }
