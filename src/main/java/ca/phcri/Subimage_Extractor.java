@@ -10,7 +10,6 @@ package ca.phcri;
 
 import ij.IJ;
 import ij.ImageJ;
-import ij.ImageListener;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.OpenDialog;
@@ -22,6 +21,7 @@ import java.util.Random;
 
 import loci.formats.ChannelSeparator;
 import loci.formats.FormatException;
+import loci.plugins.config.SpringUtilities;
 import loci.plugins.util.ImageProcessorReader;
 import loci.plugins.util.LociPrefs;
 import ij.process.ImageConverter;
@@ -31,21 +31,18 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
-
-
-
-
-
-
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SpringLayout;
+import javax.swing.SwingConstants;
+import javax.swing.border.TitledBorder;
 
 
 /*
@@ -53,8 +50,7 @@ import javax.swing.JPanel;
  * regions of SVS file at highest magnification.
  */
 
-public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener, 
-MouseMotionListener {
+public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener, MouseMotionListener {
 	private String dir, name, id;
 	private static int subWidth = 1028, subHeight = 768,
 			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
@@ -82,7 +78,7 @@ MouseMotionListener {
 	private String err;
 	private CheckboxGroup cg1;
 	private static Image iconImg;
-	private Component[] components;
+	private Component[] compGroup1, compGroup2;
 	private static boolean cg1EqualsNumber = true;
 	private static final int[] numberFields = {6, 7, 8, 9};
 	private static final int[] spaceFields = {11, 12, 13, 14};
@@ -91,6 +87,7 @@ MouseMotionListener {
 	private int count = 2;
 	private TextField noSubHorInput, noSubVertInput;
 	private TextField spaceHorInput, spaceVertInput;
+	private JTextField inputX ,inputY, inputWidth, inputHeight;
 	
 	@Override
 	public void run(String arg) {
@@ -139,6 +136,17 @@ MouseMotionListener {
 			ImageCanvas ic = impThumb.getCanvas();
 			ic.addMouseMotionListener(this);
 			
+			ImageWindow iw = impThumb.getWindow();
+			iw.addWindowListener(
+					new WindowAdapter(){
+						@Override
+						public void windowClosing(WindowEvent e){
+							impThumb.close();
+							rg.dispose();
+							}
+						}
+					);
+			
 			r.close();
 			IJ.showStatus("");
 		}
@@ -164,14 +172,14 @@ MouseMotionListener {
 			rectY = selectionRect.y;
 			rectWidth = selectionRect.width;
 			rectHeight = selectionRect.height;
+			
+			
+			inputX.setText(String.valueOf((int) (rectX * ratioImageThumbX)));
+			inputY.setText(String.valueOf((int) (rectY * ratioImageThumbY)));
+			inputWidth.setText(String.valueOf((int) (rectWidth * ratioImageThumbX)));
+			inputHeight.setText(String.valueOf((int) (rectHeight * ratioImageThumbY)));
+			
 		}
-		
-		/*
-		IJ.log("rectX: " + rectX);
-		IJ.log("recty: " + rectY);
-		IJ.log("rectWidth: " + rectWidth);
-		IJ.log("rectHeight: " + rectHeight + "\n");
-		*/
 	}
 
 	@Override
@@ -189,29 +197,58 @@ MouseMotionListener {
 	
 	void roiGetter(){
 		rg = new JFrame("set ROI");
-		rg.setLayout(new GridLayout(2, 1));
+		JPanel p = new JPanel();
+		p.setLayout(new BoxLayout(p, BoxLayout.PAGE_AXIS));
 		rg.setIconImage(iconImg);
 		
 		JPanel p1 = new JPanel();
 		JLabel lab1 = new JLabel("<html>Draw a rectangle to cover <BR>" +
-				"a region of interest and press \"OK\". </html>");
+				"a region of interest and press \"OK\". <BR>"
+				+ "You can also specify the ROI by inputting values <BR>"
+				+ "in the boxes below</html>");
 		p1.add(lab1);
 		
+		JPanel p2 = new JPanel(new SpringLayout());
+		String[] inputRoi = {"x", "y", "Width", "Height"};
+		for (int i = 0; i < 4; i++){
+			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
+			p2.add(l);
+			JTextField tf = new JTextField(1);
+			tf.setActionCommand(inputRoi[i]);
+			tf.addActionListener(this);
+			l.setLabelFor(tf);
+			p2.add(tf);
+		}
 		
-		JPanel p2 = new JPanel();
+		SpringUtilities.makeCompactGrid(p2, 4, 2, 6, 6, 6, 6);
+		p2.setBorder(new TitledBorder("ROI location and size"));
+		
+		JPanel p3 = new JPanel();
 		JButton b1 = new JButton("OK");
 		JButton b2 = new JButton("Cancel");
-		
 		b1.addActionListener(this);
 		b2.addActionListener(this);
 		b1.setActionCommand("b1OK");
 		b2.setActionCommand("b2Cancel");
+		p3.add(b1);
+		p3.add(b2);
 		
-		p2.add(b1);
-		p2.add(b2);
+		p.add(p1);
+		p.add(p2);
+		p.add(p3);
 		
-		rg.add(p1);
-		rg.add(p2);
+		
+		Component[] compGroup1 = p2.getComponents();
+		inputX = (JTextField) compGroup1[1];
+		inputY = (JTextField) compGroup1[3];
+		inputWidth = (JTextField) compGroup1[5];
+		inputHeight = (JTextField) compGroup1[7];
+
+		
+		
+		
+		
+		rg.setContentPane(p);
 		
 		rg.addWindowListener(
 				new WindowAdapter(){
@@ -239,13 +276,7 @@ MouseMotionListener {
 				sectionLocation.setStrokeColor(Color.yellow);
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
-				/*
-				Rectangle selectionRect = sectionLocation.getBounds();
-				rectX = selectionRect.x;
-				rectY = selectionRect.y;
-				rectWidth = selectionRect.width;
-				rectHeight = selectionRect.height;
-				*/
+				
 				askSettings();
 			
 			} else
@@ -299,28 +330,28 @@ MouseMotionListener {
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
 		
-		components = gd.getComponents();
+		compGroup2 = gd.getComponents();
 		
 		if(cg1EqualsNumber){
 			for (int i : numberFields)
-				components[i].setEnabled(true);
+				compGroup2[i].setEnabled(true);
 			for (int i : spaceFields)
-				components[i].setEnabled(false);
+				compGroup2[i].setEnabled(false);
 		} else {
 			for (int i : numberFields)
-				components[i].setEnabled(false);
+				compGroup2[i].setEnabled(false);
 			for (int i : spaceFields)
-				components[i].setEnabled(true);
+				compGroup2[i].setEnabled(true);
 		}
 		
 		for (int i : manualFields)
-			components[i].setEnabled(false);
+			compGroup2[i].setEnabled(false);
 		
 		//parts to avoid flickering
-		noSubHorInput = (TextField) components[7];
-		noSubVertInput = (TextField) components[9];
-		spaceHorInput = (TextField) components[12];
-		spaceVertInput = (TextField) components[14];
+		noSubHorInput = (TextField) compGroup2[7];
+		noSubVertInput = (TextField) compGroup2[9];
+		spaceHorInput = (TextField) compGroup2[12];
+		spaceVertInput = (TextField) compGroup2[14];
 		
 		//drawSubimagesOnThumb();
 		gd.addDialogListener(this);
@@ -380,16 +411,17 @@ MouseMotionListener {
 
 		if(cg1EqualsNumber){
 			for (int i : numberFields)
-				components[i].setEnabled(true);
+				compGroup2[i].setEnabled(true);
 			for (int i : spaceFields)
-				components[i].setEnabled(false);
+				compGroup2[i].setEnabled(false);
 			if(noSubHor <= 0 || noSubVert <= 0){
 				err = "Number of Subimages should be positive";
 				spacingFieldChange = false;
 				count = 2;
 			} else {
 				spaceHor = 
-					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
+					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - 
+							subWidth);
 				
 				spaceVert = 
 					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert - 
@@ -409,9 +441,9 @@ MouseMotionListener {
 		
 		if(!cg1EqualsNumber){
 			for (int i : numberFields)
-				components[i].setEnabled(false);
+				compGroup2[i].setEnabled(false);
 			for (int i : spaceFields)
-				components[i].setEnabled(true);
+				compGroup2[i].setEnabled(true);
 			
 			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
 			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
@@ -430,10 +462,10 @@ MouseMotionListener {
 		
 		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
 			for (int i : manualFields)
-				components[i].setEnabled(true);
+				compGroup2[i].setEnabled(true);
 		} else {
 			for (int i : manualFields)
-				components[i].setEnabled(false);
+				compGroup2[i].setEnabled(false);
 			
 			if(location.equals(subimagesLocatedBy[RANDOM])){
 				subsStartX = (int) (random.nextInt(appX) - subWidth + 
