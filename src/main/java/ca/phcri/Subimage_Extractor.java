@@ -155,18 +155,17 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 			impThumb.show();
 			
 			ImageCanvas ic = impThumb.getCanvas();
-			
-			/*
 			ic.addMouseListener(
 					new MouseAdapter(){
 						@Override
 						public void mouseReleased(MouseEvent e){
 							mouseReleased = true;
-							roiToFields();
+							IJ.log("mouseReleased");
+							if(mouseReleased) IJ.log("mouseReleased true");
 						}
 					}
 				);
-			*/
+			
 			ic.addMouseMotionListener(this);
 			
 			ImageWindow iw = impThumb.getWindow();
