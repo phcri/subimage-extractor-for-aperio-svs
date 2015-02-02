@@ -66,7 +66,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private static final int NUMBER = 0, SPACE = 1;
 
 	private static final String[] subimagesLocatedBy = 
-		{"Random offset", "Starting at x = 0, y = 0", "Manual Location"};
+		{"Random offset", "Fix to the upper left corner of the ROI", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 	private Random random = new Random(System.currentTimeMillis());
 	private int appX, appY;
@@ -78,7 +78,11 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private String err;
 	private CheckboxGroup cg1;
 	private static Image iconImg;
-	
+	private Component[] components;
+	private boolean cg1EqualsSpace;
+	private static final int[] numberFields = {6, 7, 8, 9};
+	private static final int[] spaceFields = {11, 12, 13, 14};
+	private static final int[] manualFields = {17, 18, 19, 20};
 	
 	public void run(String arg) {
 		if(iconImg == null) getIconImage();
@@ -208,6 +212,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 
 	
 	void askSettings() {
+		
 		if(noSubHor * noSubVert > 500 || 
 				((int) (rectWidth * ratioImageThumbX/ (subWidth + spaceHor)) + 1) * 
 				((int) (rectHeight * ratioImageThumbY / (subHeight + spaceVert)) + 1) > 500){
@@ -221,17 +226,19 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 							- subHeight);
 		}
 		
+		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
+		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
 		gd.addNumericField("Subimage Width:", subWidth, 0);
 		gd.addNumericField("Subimage Height:", subHeight, 0);
 		
 		addMessage(gd, "Subimage Spacing: ");
 		cg1 = new CheckboxGroup();
-		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, true);
+		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, !cg1EqualsSpace);
 		gd.addNumericField("Horizontally", noSubHor, 0);
 		gd.addNumericField("Vertically", noSubVert, 0);
 		
-		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, false);
+		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, cg1EqualsSpace);
 		gd.addNumericField("Horizontally", spaceHor, 0);
 		gd.addNumericField("Vertically", spaceVert, 0);
 		
@@ -243,7 +250,23 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		
 		
 
-		Component[] comp = gd.getComponents();
+		components = gd.getComponents();
+		
+		if(cg1EqualsSpace){
+			for (int i : numberFields)
+				components[i].setEnabled(false);
+			for (int i : spaceFields)
+				components[i].setEnabled(true);
+		} else {
+			for (int i : numberFields)
+				components[i].setEnabled(true);
+			for (int i : spaceFields)
+				components[i].setEnabled(false);
+		}
+		
+		for (int i : manualFields)
+			components[i].setEnabled(false);
+		
 		
 		gd.addDialogListener(this);
 		gd.showDialog();
@@ -279,10 +302,14 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		subsStartY = (int) gd.getNextNumber();
 		err = "";
 		
-		
+		cg1EqualsSpace = subimageSpacingSpecifiedBy[SPACE].equals(spacing);
 
 		
-		if(spacing.equals(subimageSpacingSpecifiedBy[NUMBER])){
+		if(!cg1EqualsSpace){
+			for (int i : numberFields)
+				components[i].setEnabled(true);
+			for (int i : spaceFields)
+				components[i].setEnabled(false);
 			if(noSubHor <= 0 || noSubVert <= 0){
 				err = "Number of Subimages should be positive";
 			} else {
@@ -298,22 +325,33 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		appX = subWidth + spaceHor;
 		appY = subHeight + spaceVert;
 		
-		if(spacing.equals(subimageSpacingSpecifiedBy[SPACE])){
+		if(cg1EqualsSpace){
+			for (int i : numberFields)
+				components[i].setEnabled(false);
+			for (int i : spaceFields)
+				components[i].setEnabled(true);
 			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
 			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
 		}
 		
 
 
-		
-		if(location.equals(subimagesLocatedBy[RANDOM])){
-			subsStartX = (int) (random.nextInt(appX) - subWidth + 
-					rectX * ratioImageThumbX);
-			subsStartY = (int) (random.nextInt(appY) - subHeight + 
-					rectY * ratioImageThumbY);
-		} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
-			subsStartX = (int) (rectX * ratioImageThumbX);
-			subsStartY = (int) (rectY * ratioImageThumbY);
+		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
+			for (int i : manualFields)
+				components[i].setEnabled(true);
+		} else {
+			for (int i : manualFields)
+				components[i].setEnabled(false);
+			
+			if(location.equals(subimagesLocatedBy[RANDOM])){
+				subsStartX = (int) (random.nextInt(appX) - subWidth + 
+						rectX * ratioImageThumbX);
+				subsStartY = (int) (random.nextInt(appY) - subHeight + 
+						rectY * ratioImageThumbY);
+			} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
+				subsStartX = (int) (rectX * ratioImageThumbX);
+				subsStartY = (int) (rectY * ratioImageThumbY);
+			}
 		}
 
 		if(noSubHor * noSubVert > 500)
