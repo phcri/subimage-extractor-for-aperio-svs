@@ -14,7 +14,6 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
-import ij.plugin.frame.PlugInFrame;
 import ij.process.ImageProcessor;
 
 import java.io.IOException;
@@ -34,18 +33,9 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 
-
-
-
-
-
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.border.TitledBorder;
 
 
 /*
@@ -55,15 +45,14 @@ import javax.swing.border.TitledBorder;
 
 public class Subimage_Extractor implements PlugIn, DialogListener, ActionListener {
 	private String dir, name, id;
-	private int startX, startY;
 	private static int subWidth = 1028, subHeight = 768,
 			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
 	private static String spacing, location;
 	
 	private ImagePlus impThumb;
-	Roi sectionLocation;
+	//private Roi sectionLocation;
 
-	JFrame rg;
+	private JFrame rg;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimageSpacingSpecifiedBy = 
 		{"the number of Subimages", "Space between Subimages"};
@@ -92,6 +81,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 	private TextField noSubHorInput, noSubVertInput;
 	private TextField spaceHorInput, spaceVertInput;
 	
+	@Override
 	public void run(String arg) {
 		if(iconImg == null) getIconImage();
 		openThumb(arg);
@@ -124,9 +114,9 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
 				ImageProcessor ip = r.openThumbProcessors(i)[0];
-
 				stack.addSlice("" + (i + 1), ip);
 			}
+			
 			IJ.showStatus("Constructing image");
 			impThumb = new ImagePlus("thumbnail of " + name, stack);
 			
@@ -158,9 +148,9 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		rg.setSize(200, 200);
 		rg.setLayout(new GridLayout(3, 1));
 		
-		JPanel p1 = new JPanel(new FlowLayout(), true);
-		JPanel p2 = new JPanel(new FlowLayout(), true);
-		JPanel p3 = new JPanel(new FlowLayout(), true);
+		JPanel p1 = new JPanel();
+		JPanel p2 = new JPanel();
+		JPanel p3 = new JPanel();
 		JButton b1 = new JButton("OK");
 		JButton b2 = new JButton("Cancel");
 		b1.addActionListener(this);
@@ -184,17 +174,19 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 					}
 				}
 		);
-		
+
+		rg.pack();
 		rg.setVisible(true);
 	}
 	
+	@Override
 	public void actionPerformed(ActionEvent e){
 		if("b1OK".equals(e.getActionCommand())){
 			Roi sectionLocation = impThumb.getRoi();
 			
 			if(sectionLocation != null){
 				sectionLocation.setName("section");
-				sectionLocation.setColor(Color.yellow);
+				sectionLocation.setStrokeColor(Color.yellow);
 				impThumb.setOverlay(new Overlay(sectionLocation));
 				rg.dispose();
 
@@ -205,11 +197,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				rectHeight = selectionRect.height;
 				askSettings();
 			
-			} else {
+			} else
 				IJ.error("No selection");
-			}
-			
-
 		}
 		if("b2Cancel".equals(e.getActionCommand())){
 			impThumb.close();
@@ -241,7 +230,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.addNumericField("Subimage Width:", subWidth, 0);
 		gd.addNumericField("Subimage Height:", subHeight, 0);
 		
-		addMessage(gd, "Subimage Spacing: ");
+		addMessage(gd, "Spacing of Subimages: ");
 		cg1 = new CheckboxGroup();
 		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, !cg1EqualsSpace);
 		gd.addNumericField("Horizontally", noSubHor, 0);
@@ -252,7 +241,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.addNumericField("Vertically", spaceVert, 0);
 		
 		
-		gd.addRadioButtonGroup("Subimage location: ", subimagesLocatedBy,
+		gd.addRadioButtonGroup("Location of Subimages: ", subimagesLocatedBy,
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
@@ -287,7 +276,10 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 		gd.showDialog();
 		
 		
-		if (gd.wasCanceled()) return;
+		if (gd.wasCanceled()) {
+			impThumb.close();
+			return;
+		}
 		if (gd.wasOKed()){
 			if("".equals(err))
 				openSubimages();
@@ -296,8 +288,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				impThumb.close();
 			}
 		}
-		
-		
 	}
 	
 	
@@ -310,7 +300,6 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 			count ++;
 			return true;
 		}
-		
 		
 		
 		subWidth = (int) gd.getNextNumber();
@@ -349,6 +338,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 				components[i].setEnabled(false);
 			if(noSubHor <= 0 || noSubVert <= 0){
 				err = "Number of Subimages should be positive";
+				spacingFieldChange = false;
+				count = 2;
 			} else {
 				spaceHor = 
 					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - subWidth);
@@ -497,7 +488,7 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
 						(int) (subWidth/ratioImageThumbX), 
 						(int) (subHeight/ratioImageThumbY));
 		roi.setName("Sub" + (noSubHor * m + n + 1));
-		roi.setColor(Color.green);
+		roi.setStrokeColor(Color.green);
 		ol.addElement(roi);
 			}
 		}
@@ -520,9 +511,8 @@ public class Subimage_Extractor implements PlugIn, DialogListener, ActionListene
         cb.addItemListener(gd);
         panel.add(cb);
         
-        Insets insets = new Insets(5, 10, 0, 0);
+        Insets insets = new Insets(2, 20, 0, 0);
 
-        insets.top += 5;
        gd.addPanel(panel, GridBagConstraints.WEST, insets);
 	}
 	
