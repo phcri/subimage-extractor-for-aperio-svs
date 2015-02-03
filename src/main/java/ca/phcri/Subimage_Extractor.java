@@ -496,7 +496,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				err = "Number of Subimages should be a positive integer\n";
 				spacingFieldChange = false;
 				count = 2;
-				//avoid calculating spaceHor and "the parts to avoid flickering"
+				//skip calculation of space values which 
+				//makes "the parts to avoid flickering" not necessary
 			} else {
 				spaceHor = (int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
 				
@@ -558,7 +559,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				subsStartY + appY * noSubVert - spaceVert > imageHeight) 
 			err += "Subimages cannot be out of the image\n";
 		if(noSubHor * noSubVert > 500)
-			err += "Are you sure to open more than 500 subimages?\n";
+			err += "Not allowed to open more than 500 subimages\n";
 		
 		if(!"".equals(err)) {
 			IJ.showStatus(err);
