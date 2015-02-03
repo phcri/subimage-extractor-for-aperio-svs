@@ -89,9 +89,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	private int imageWidth, imageHeight;
 	private int thumbWidth, thumbHeight;
 	private double ratioImageThumbX, ratioImageThumbY;
-	private int rectX, rectY;
-	private int rectWidth, rectHeight;
-	private String err = "", caution = "";
+	//private int rectX, rectY;
+	//private int rectWidth, rectHeight;
+	private String err = "";
 	private CheckboxGroup cg1;
 	private static Image iconImg;
 	private Component[] compGroup1, compGroup2;
@@ -197,10 +197,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		if(sectionLocation != null){
 			inputByMouseDragged = true;
 			Rectangle selectionRect = sectionLocation.getBounds();
-			rectX = selectionRect.x;
-			rectY = selectionRect.y;
-			rectWidth = selectionRect.width;
-			rectHeight = selectionRect.height;
+			int rectX = selectionRect.x;
+			int rectY = selectionRect.y;
+			int rectWidth = selectionRect.width;
+			int rectHeight = selectionRect.height;
 			
 			actRoiX = (int) (rectX * ratioImageThumbX);
 			actRoiY = (int) (rectY * ratioImageThumbY);
@@ -269,7 +269,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		p.add(p3);
 		
 		
-		Component[] compGroup1 = p2.getComponents();
+		compGroup1 = p2.getComponents();
 		inputX = (JTextField) compGroup1[1];
 		inputY = (JTextField) compGroup1[3];
 		inputWidth = (JTextField) compGroup1[5];
@@ -297,29 +297,29 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	@Override
 	public void insertUpdate(DocumentEvent e) {
-		drawRoi(e);
+		drawRoi();
 	}
 	
 	@Override
 	public void removeUpdate(DocumentEvent e) {
-		drawRoi(e);
+		drawRoi();
 	}
 	
 	@Override
 	public void changedUpdate(DocumentEvent e) {
-		drawRoi(e);
+		drawRoi();
 	}
 	
 	
-	void drawRoi(DocumentEvent e){
+	void drawRoi(){
 		if(inputByMouseDragged) return;
 		
 		err = "";
 		
-		actRoiX = (int) (Integer.parseInt(inputX.getText()));
-		actRoiY = (int) (Integer.parseInt(inputY.getText()));
-		actRoiWidth = (int) (Integer.parseInt(inputWidth.getText()));
-		actRoiHeight = (int) (Integer.parseInt(inputHeight.getText()));
+		actRoiX = Integer.parseInt(inputX.getText());
+		actRoiY = Integer.parseInt(inputY.getText());
+		actRoiWidth = Integer.parseInt(inputWidth.getText());
+		actRoiHeight = Integer.parseInt(inputHeight.getText());
 		
 		int rectX = (int) (actRoiX / ratioImageThumbX);
 		int rectY = (int) (actRoiY	/ ratioImageThumbY);
@@ -438,8 +438,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			return;
 		}
 		if (gd.wasOKed()){
-			if("".equals(err))
-				//if(!"".equals(caution)) 
+			if("".equals(err)) 
 				openSubimages();
 			else {
 				IJ.error("Subimage Extractor " + err);
@@ -497,7 +496,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				err = "Number of Subimages should be a positive integer\n";
 				spacingFieldChange = false;
 				count = 2;
-				//avoid calculating spaceHor and "the parts to avoid flickering"
+				//skip calculation of space values which 
+				//makes "the parts to avoid flickering" not necessary
 			} else {
 				spaceHor = (int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
 				
@@ -542,12 +542,12 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				compGroup2[i].setEnabled(false);
 			
 			if(location.equals(subimagesLocatedBy[RANDOM])){
-				subsStartX = (int) (random.nextInt(appX) - subWidth + actRoiX);
-				subsStartY = (int) (random.nextInt(appY) - subHeight + actRoiY);
+				subsStartX = random.nextInt(appX) - subWidth + actRoiX;
+				subsStartY = random.nextInt(appY) - subHeight + actRoiY;
 				
 			} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
-				subsStartX = (int) (actRoiX);
-				subsStartY = (int) (actRoiY);
+				subsStartX = actRoiX;
+				subsStartY = actRoiY;
 				spacingFieldChange = false;
 			}
 		}
@@ -559,10 +559,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				subsStartY + appY * noSubVert - spaceVert > imageHeight) 
 			err += "Subimages cannot be out of the image\n";
 		if(noSubHor * noSubVert > 500)
-			caution += "Are you sure to open more than 500 subimages?\n";
+			err += "Not allowed to open more than 500 subimages\n";
 		
-		if(!("".equals(err) && "".equals(caution))) {
-			IJ.showStatus(err + caution);
+		if(!"".equals(err)) {
+			IJ.showStatus(err);
 			return true;
 		}
 		
@@ -696,15 +696,15 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	        return item;
 	    }
 	 
-	 
+
 	 
 	 void showParameters(){
 		 DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 		 Date date = new Date();
 		 String parameters = 
 				 df.format(date) + "\t" + name + "\t" + 
-						rectX + "\t" + rectY + "\t" + 
-						rectWidth + "\t" + rectHeight + "\t" + 
+						 actRoiX + "\t" + actRoiY + "\t" + 
+						 actRoiWidth + "\t" + actRoiHeight + "\t" + 
 						subsStartX + "\t" + subsStartY + "\t" + 
 						subWidth + "\t" + subHeight + "\t" + 
 						spaceHor + "\t" + spaceVert + "\t" + 
