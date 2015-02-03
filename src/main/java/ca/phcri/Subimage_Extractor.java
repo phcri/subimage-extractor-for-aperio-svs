@@ -40,7 +40,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -65,7 +64,7 @@ import javax.swing.event.DocumentListener;
 
 public class Subimage_Extractor implements 
 //PlugIn, DialogListener, ActionListener, DocumentListener {
-PlugIn, DialogListener, ActionListener, MouseMotionListener {
+PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 
 
 	private String dir, name, id;
@@ -77,7 +76,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 	private JFrame rg;
 	private static int subsStartX, subsStartY;
 	private static final String[] subimageSpacingSpecifiedBy = 
-		{"the number of Subimages", "Space between Subimages"};
+		{"Number of Subimages", "Space between Subimages"};
 	private static final int NUMBER = 0, SPACE = 1;
 	private static String spacing = subimageSpacingSpecifiedBy[NUMBER];
 	private static final String[] subimagesLocatedBy = 
@@ -92,7 +91,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 	private double ratioImageThumbX, ratioImageThumbY;
 	private int rectX, rectY;
 	private int rectWidth, rectHeight;
-	private String err;
+	private String err = "", caution = "";
 	private CheckboxGroup cg1;
 	private static Image iconImg;
 	private Component[] compGroup1, compGroup2;
@@ -106,9 +105,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 	private TextField spaceHorInput, spaceVertInput;
 	private JTextField inputX ,inputY, inputWidth, inputHeight;
 	private boolean inputByMouseDragged;
-	private int actionCount = 3;
 	protected boolean mouseReleased;
 	private static boolean openInStack = true;
+	private int actRoiX, actRoiY, actRoiWidth, actRoiHeight;
+
 	
 	@Override
 	public void run(String arg) {
@@ -155,18 +155,15 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 			impThumb.show();
 			
 			ImageCanvas ic = impThumb.getCanvas();
-			
-			/*
 			ic.addMouseListener(
 					new MouseAdapter(){
 						@Override
 						public void mouseReleased(MouseEvent e){
-							mouseReleased = true;
-							roiToFields();
+							inputByMouseDragged = false;
 						}
 					}
 				);
-			*/
+			
 			ic.addMouseMotionListener(this);
 			
 			ImageWindow iw = impThumb.getWindow();
@@ -198,19 +195,25 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		Roi sectionLocation = impThumb.getRoi();
 		
 		if(sectionLocation != null){
-			
+			inputByMouseDragged = true;
 			Rectangle selectionRect = sectionLocation.getBounds();
 			rectX = selectionRect.x;
 			rectY = selectionRect.y;
 			rectWidth = selectionRect.width;
 			rectHeight = selectionRect.height;
 			
-			inputX.setText(String.valueOf((int) (rectX * ratioImageThumbX)));
-			inputY.setText(String.valueOf((int) (rectY * ratioImageThumbY)));
-			inputWidth.setText(String.valueOf((int) (rectWidth * ratioImageThumbX)));
-			inputHeight.setText(String.valueOf((int) (rectHeight * ratioImageThumbY)));
+			actRoiX = (int) (rectX * ratioImageThumbX);
+			actRoiY = (int) (rectY * ratioImageThumbY);
+			actRoiWidth = (int) (rectWidth * ratioImageThumbX);
+			actRoiHeight = (int) (rectHeight * ratioImageThumbY);
+			
+			inputX.setText(String.valueOf(actRoiX));
+			inputY.setText(String.valueOf(actRoiY));
+			inputWidth.setText(String.valueOf(actRoiWidth));
+			inputHeight.setText(String.valueOf(actRoiHeight));
 		}
 	}
+	
 
 	@Override
 	public void mouseMoved(MouseEvent e) {
@@ -242,8 +245,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		for (int i = 0; i < 4; i++){
 			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
 			p2.add(l);
-			JTextField tf = new JTextField(6);
-			//tf.getDocument().addDocumentListener(this);
+			JTextField tf = new JTextField();
+			tf.getDocument().addDocumentListener(this);
 			l.setLabelFor(tf);
 			p2.add(tf);
 		}
@@ -286,10 +289,12 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		);
 
 		rg.pack();
-		rg.setVisible(true);	
+		rg.setVisible(true);
+		
+		
 	}
 	
-	/*
+	
 	@Override
 	public void insertUpdate(DocumentEvent e) {
 		drawRoi(e);
@@ -307,51 +312,33 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 	
 	
 	void drawRoi(DocumentEvent e){
-		IJ.log("drawRoi actionCount" + actionCount);
+		if(inputByMouseDragged) return;
 		
-		if(inputByMouseDragged){ 
-			if(!mouseReleased) {
-				IJ.log("mouse button being pressed");
-				return;
-			}else {
-				IJ.log(e.getDocument().getDefaultRootElement().getName());
-				IJ.log("mouse released");
-			}
+		err = "";
+		
+		actRoiX = (int) (Integer.parseInt(inputX.getText()));
+		actRoiY = (int) (Integer.parseInt(inputY.getText()));
+		actRoiWidth = (int) (Integer.parseInt(inputWidth.getText()));
+		actRoiHeight = (int) (Integer.parseInt(inputHeight.getText()));
+		
+		int rectX = (int) (actRoiX / ratioImageThumbX);
+		int rectY = (int) (actRoiY	/ ratioImageThumbY);
+		int rectWidth = (int) (actRoiWidth / ratioImageThumbX);
+		int rectHeight = (int) (actRoiHeight / ratioImageThumbY);
+		
+		if(actRoiX + actRoiWidth > imageWidth ||
+				actRoiY + actRoiHeight	> imageHeight){
+			err += "ROI should be within the image";
 		}
 		
-		{
-			
-			if(actionCount < 3) {
-				actionCount ++;
-				return;
-			} else {
-				//inputByMouseDragged = false;
-				//return;
+		if(!"".equals(err)) {
+			IJ.showStatus(err);
+			return;
 			}
-			
-			IJ.log("inputByMouseDragged true");
-			
 		
-			
-		 else {
-			int valueX = 
-					(int) (Integer.parseInt(inputX.getText()) / ratioImageThumbX);
-			int valueY = 
-					(int) (Integer.parseInt(inputY.getText()) / ratioImageThumbY);
-			int valueWidth = 
-					(int) (Integer.parseInt(inputWidth.getText()) / ratioImageThumbX);
-			int valueHeight = 
-					(int) (Integer.parseInt(inputHeight.getText()) / ratioImageThumbY);
-			
-			impThumb.setRoi(valueX, valueY, valueWidth, valueHeight);
-			
-			IJ.log("inputByMouseDragged false");
-		}
-		
-		IJ.log("action performed");
-
+		impThumb.setRoi(rectX, rectY, rectWidth, rectHeight);
 	}
-	*/
+
 	
 	
 	@Override
@@ -359,17 +346,23 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		if("b1OK".equals(e.getActionCommand())){
 			Roi sectionLocation = impThumb.getRoi();
 			
-			if(sectionLocation != null){
-				sectionLocation.setName("section");
-				sectionLocation.setStrokeColor(Color.yellow);
-				impThumb.setOverlay(new Overlay(sectionLocation));
-				rg.dispose();
-				
-				askSettings();
-			
-			} else
+			if(sectionLocation == null){
 				IJ.error("No selection");
+			} else {
+				
+				if("".equals(err)){
+					sectionLocation.setName("section");
+					sectionLocation.setStrokeColor(Color.yellow);
+					impThumb.setOverlay(new Overlay(sectionLocation));
+					rg.dispose();
+					
+					askSettings();
+				} else 
+					IJ.error("Subimage Extractor ", err);
+				
+			}
 		}
+		
 		
 		if("b2Cancel".equals(e.getActionCommand())){
 			impThumb.close();
@@ -386,17 +379,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 			noSubHor = 3;
 			noSubVert = 3;
 			spaceHor = 
-					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor
-							- subWidth);
+					(int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
 			spaceVert = 
-					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert
-							- subHeight);
-			/*
-			appX = subWidth + spaceHor;
-			appY = subHeight + spaceVert;
-			subsStartX = (int) (rectX * ratioImageThumbX);
-			subsStartY = (int) (rectY * ratioImageThumbY);
-			*/
+					(int) ((actRoiHeight + subHeight)/noSubVert - subHeight);
 		}
 		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
@@ -419,7 +404,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
-		gd.addCheckbox("Open in Stack", openInStack);
+		gd.addCheckbox("Open subimages as a Stack", openInStack);
 		
 		compGroup2 = gd.getComponents();
 		
@@ -454,6 +439,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		}
 		if (gd.wasOKed()){
 			if("".equals(err))
+				//if(!"".equals(caution)) 
 				openSubimages();
 			else {
 				IJ.error("Subimage Extractor " + err);
@@ -486,6 +472,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		subsStartY = (int) gd.getNextNumber();
 		openInStack = gd.getNextBoolean();
 		err = "";
+		IJ.showStatus(err);
 		
 		//parts to avoid flickering
 		if(currentNoSubHor != noSubHor || currentNoSubVert != noSubVert || 
@@ -507,17 +494,14 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 			for (int i : spaceFields)
 				compGroup2[i].setEnabled(false);
 			if(noSubHor <= 0 || noSubVert <= 0){
-				err = "Number of Subimages should be positive";
+				err = "Number of Subimages should be a positive integer\n";
 				spacingFieldChange = false;
 				count = 2;
+				//avoid calculating spaceHor and "the parts to avoid flickering"
 			} else {
-				spaceHor = 
-					(int) ((rectWidth * ratioImageThumbX + subWidth)/noSubHor - 
-							subWidth);
+				spaceHor = (int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
 				
-				spaceVert = 
-					(int) ((rectHeight * ratioImageThumbY + subHeight)/noSubVert - 
-							subHeight);
+				spaceVert = (int) ((actRoiHeight + subHeight)/noSubVert - subHeight);
 				
 				if(spacingFieldChange){
 					spaceHorInput.setText(String.valueOf(spaceHor));
@@ -526,7 +510,6 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 				}
 			}
 		}
-		
 		
 		appX = subWidth + spaceHor;
 		appY = subHeight + spaceVert;
@@ -537,8 +520,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 			for (int i : spaceFields)
 				compGroup2[i].setEnabled(true);
 			
-			noSubHor = (int) (rectWidth * ratioImageThumbX/ appX) + 1;
-			noSubVert = (int) (rectHeight * ratioImageThumbY / appY) + 1;
+			noSubHor = (int) (actRoiWidth/ appX) + 1;
+			noSubVert = (int) (actRoiHeight / appY) + 1;
 			
 			if(spacingFieldChange){
 				noSubHorInput.setText(String.valueOf(noSubHor));
@@ -548,8 +531,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 		}
 		
 		
-		if(noSubHor * noSubVert > 500)
-			err = "Not allowed to open more than 500 subimages";
+		
 		
 		
 		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
@@ -560,19 +542,27 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener {
 				compGroup2[i].setEnabled(false);
 			
 			if(location.equals(subimagesLocatedBy[RANDOM])){
-				subsStartX = (int) (random.nextInt(appX) - subWidth + 
-						rectX * ratioImageThumbX);
-				subsStartY = (int) (random.nextInt(appY) - subHeight + 
-						rectY * ratioImageThumbY);
+				subsStartX = (int) (random.nextInt(appX) - subWidth + actRoiX);
+				subsStartY = (int) (random.nextInt(appY) - subHeight + actRoiY);
+				
 			} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
-				subsStartX = (int) (rectX * ratioImageThumbX);
-				subsStartY = (int) (rectY * ratioImageThumbY);
+				subsStartX = (int) (actRoiX);
+				subsStartY = (int) (actRoiY);
 				spacingFieldChange = false;
 			}
 		}
 		
-		if(!"".equals(err)) {
-			IJ.showStatus(err);
+		if(spaceHor < 0 || spaceVert < 0)
+			err += "Space between subimages should be 0 or more\n";
+		
+		if(subsStartX + appX * noSubHor - spaceHor > imageWidth||
+				subsStartY + appY * noSubVert - spaceVert > imageHeight) 
+			err += "Subimages cannot be out of the image\n";
+		if(noSubHor * noSubVert > 500)
+			caution += "Are you sure to open more than 500 subimages?\n";
+		
+		if(!("".equals(err) && "".equals(caution))) {
+			IJ.showStatus(err + caution);
 			return true;
 		}
 		
