@@ -110,7 +110,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	protected boolean mouseReleased;
 	private static boolean openInStack = true;
 	private int actRoiX, actRoiY, actRoiWidth, actRoiHeight;
-	private boolean openInHyperStack;
+	private boolean openInVirtualStack;
 
 	
 	@Override
@@ -568,62 +568,14 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	
 	void openSubimages(){
+		//IJ.log("opening");
+		SVSStack ss = new SVSStack(dir, name, 0, subsStartX, subsStartY, subWidth, subHeight);
+		ImagePlus imp = new ImagePlus(name, ss);
+		imp.show();
 		
-		ChannelSeparator r = 
-				new ChannelSeparator(LociPrefs.makeImageReader());
-		
-		try {
-			IJ.showStatus("Examining file " + name);
-			r.setId(id);
-			r.setSeries(0);      
-						
-			ImageStack is = new ImageStack(subWidth, subHeight);
-			
-			for(int m = 0; m < noSubVert; m++) {
-				int subimageY = subsStartY + appY * m;
-				for (int n = 0; n < noSubHor; n++) {
-					int subimageX = subsStartX + appX * n;
-					
-					byte[] R = r.openBytes(0, subimageX, subimageY, 
-							subWidth, subHeight);
-					byte[] G = r.openBytes(1, subimageX, subimageY, 
-							subWidth, subHeight);
-					byte[] B = r.openBytes(2, subimageX, subimageY, 
-							subWidth, subHeight);
-					
-					ColorProcessor cp = new ColorProcessor(subWidth, subHeight);
-					cp.setRGB(R, G, B);
-					
-					IJ.showStatus("Constructing image " + (noSubHor * m + n + 1));
-					
-					String subimageName = name + ", subimage " + (noSubHor * m + n + 1) +
-							" (x = " + subimageX + ", y = " +	subimageY + ")";
-					
-					if(openInStack){
-						is.addSlice(subimageName, cp);
-					}else{
-						ImagePlus imp = new ImagePlus(subimageName, cp);
-						imp.show();
-					}
-				}
-			}
-			
-			if(openInStack){
-				ImagePlus impOut = new ImagePlus(name + "_SubimageStack", is);
-				impOut.show();
-			}
-			
-			r.close();
-			drawSubimagesOnThumb();
-			IJ.showStatus("");
-			showParameters();
-		}
-		catch (FormatException exc) {
-			IJ.error("Sorry, an error occurred: " + exc.getMessage());
-		}
-		catch (IOException exc) {
-			IJ.error("Sorry, an error occurred: " + exc.getMessage());
-		}
+		drawSubimagesOnThumb();
+		IJ.showStatus("");
+		showParameters();
 	}
 	
 	
