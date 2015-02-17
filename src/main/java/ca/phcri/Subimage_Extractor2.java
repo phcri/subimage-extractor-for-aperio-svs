@@ -419,8 +419,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		noSubVert = (int) (actRoiHeight / subHeight + 1);
 		noSubHol = (int) (actRoiWidth / subWidth + 1);
 		
-		if(noSubVert * noSubHol > 800)
-			err += "Not allowed to have more than 800 slices";
+		if(noSubVert * noSubHol > 1000)
+			err += "Not allowed to have more than 1000 slices";
 		
 		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
 			for (int i : manualFields)
@@ -454,7 +454,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	void openSubimages(){
 		//IJ.log("opening");
 		SVSStack ss = new SVSStack(dir, name, 0, subsStartX, subsStartY, 
-				actRoiWidth, actRoiHeight, subWidth, subHeight);
+				subWidth, subHeight, noSubHol, noSubVert);
 		ImagePlus imp = new ImagePlus(name, ss);
 		imp.show();
 		

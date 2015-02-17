@@ -1,6 +1,13 @@
 package ca.phcri;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import loci.formats.ChannelSeparator;
 import loci.formats.FormatException;
@@ -10,26 +17,27 @@ import ij.ImageStack;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
-public class SVSStack extends ImageStack {
+public class SVSStack extends ImageStack{
 	int nSlices;
-	ChannelSeparator r;
-	int tilesHol;
-	int tilesVert;
+	
+	int noSubHol;
+	int noSubVert;
 	int originX, originY;
 	int width;
 	int height;
 	int series;
 	String name;
-	ColorProcessor cp;
+	ImageProcessor ip;
 	String directory;
+	static int cs1, cs2;
+	static ImageProcessor cip1, cip2;
+
 
 	/** Creates a new, empty virtual stack */
 	
 	public SVSStack(String directory, String name, int series, int originX, int originY, 
-			int roiWidth, int roiHeight, int width, int height){
+			int width, int height, int noSubHol, int noSubVert){
 		//IJ.log("constructor");
-		
-		
 		this.originX = originX;
 		this.originY = originY;
 		this.width = width;
@@ -37,39 +45,31 @@ public class SVSStack extends ImageStack {
 		this.name = name;
 		this.directory = directory;
 		this.series = series;
-		tilesHol = (int) (roiWidth / this.width + 1);
-		tilesVert = (int) (roiHeight / this.height + 1);
-		nSlices = tilesHol * tilesVert;
-		//IJ.log("constructor2");
-		r = new ChannelSeparator(LociPrefs.makeImageReader());
-		//IJ.log("constructor3");
-		try {
-			//IJ.log("SVSStack constructor");
-			r.setId(this.directory + this.name);
-			r.setSeries(this.series);
-			
-		}
-		catch (FormatException exc) {
-			IJ.error("Sorry, an error occurred: " + exc.getMessage());
-		}
-		catch (IOException exc) {
-			IJ.error("Sorry, an error occurred: " + exc.getMessage());
-		}
-		//ij.log("constructor end");
+		this.noSubHol = noSubHol;
+		this.noSubVert = noSubVert;
+		nSlices = noSubHol * noSubVert;
 	}
 	
+	
+	
+	
+	
 	 /** Does nothing. */
+		@Override
 		public void addSlice(String sliceLabel, Object pixels) {
 		}
 
 		/** Does nothing.. */
+		@Override
 		public void addSlice(String sliceLabel, ImageProcessor ip) {
 		}
 		
 		/** Does noting. */
+		@Override
 		public void addSlice(String sliceLabel, ImageProcessor ip, int n) {
 		}
 		
+		@Override
 		public Object getPixels(int n) {
 			ImageProcessor ip = getProcessor(n);
 			if (ip!=null)
@@ -78,69 +78,61 @@ public class SVSStack extends ImageStack {
 				return null;
 		}
 		
+		@Override
 		public void deleteSlice(int n) {
 			
 			}
 		
 		/** Deletes the last slice in the stack. */
+		@Override
 		public void deleteLastSlice() {
 			
 		}
 		
 		/** Assigns a pixel array to the specified slice,
 		were 1<=n<=nslices. */
+	@Override
 	public void setPixels(Object pixels, int n) {
 	}
 		
 		 /** Returns an ImageProcessor for the specified slice,
 		were 1<=n<=nslices. Returns null if the stack is empty.
 	*/
+	@Override
 	public ImageProcessor getProcessor(int n) {
-		//ij.log("getProcessor: "+ n);
-		int i = (n - 1) % tilesHol;
-		int j = (int) ((n - 1) / tilesVert);
+		IJ.log("\ngetProcessor called for slice " + n);
+		if(n == cs1){
+			IJ.log("returning cip1");
+			return cip1;
+		}
+		ExecutorService executor = Executors.newFixedThreadPool(2);
 		
-		//check if originX and/or originY >= 0;
-		int subimageX = originX + width * i;
-		int subimageY = originY + height * j;
+		List<Future<ImageProcessor>> ipList = new ArrayList<Future<ImageProcessor>>();
+		for(int i = 0; i < 2; i++){
+			IJ.log("starting thread " + i);
+			Future<ImageProcessor> future = 
+					executor.submit(
+							new DrawSubimage(n, i, directory, name, series, 
+									originX, originY, width, height,
+									noSubHol, noSubVert)
+							);
+			ipList.add(future);
+			
+		}
 		
-		//ij.log("slice number: " + n);
-		////ij.log("getProcessor i: " + i);
-		//ij.log("getProcessor j: " + j);
-		//ij.log("getProcessor originX: " + originX);
-		//ij.log("getProcessor originY: " + originY);
-		//ij.log("getProcessor width: " + width);
-		//ij.log("getProcessor height: " + height);
-			
-		try {
-			byte[] R = r.openBytes(0, subimageX, subimageY, 
-					width, height);
-			byte[] G = r.openBytes(1, subimageX, subimageY, 
-					width, height);
-			byte[] B = r.openBytes(2, subimageX, subimageY, 
-					width, height);
-			cp = new ColorProcessor(width, height);
-			cp.setRGB(R, G, B);
-			
-		} catch (FormatException e) {
-			// TODO Auto-generated catch block
+		executor.shutdown();
+		
+		try{
+			ip = ipList.get(0).get();
+		} catch (InterruptedException e){
 			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (ExecutionException e){
 			e.printStackTrace();
 		}
 		
-		/*
-		if (imp!=null) {
-			int w = imp.getWidth();
-			int h = imp.getHeight();
-			int type = imp.getType();
-			ColorModel cm = imp.getProcessor().getColorModel();
-		} else
-		*/
-		if(cp == null)
-			return null;
-		return cp;
+		cs1 = n;
+		cip1 = ip;
+		return ip;
 		
 	 }
 	
@@ -170,6 +162,7 @@ public class SVSStack extends ImageStack {
    /** Does nothing. */
 	public void trim() {
 	}
+
 		
 	
 }
