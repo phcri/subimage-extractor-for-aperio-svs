@@ -11,33 +11,31 @@ package ca.phcri;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.ImageStack;
-import ij.VirtualStack;
 import ij.WindowManager;
+import ij.gui.DialogListener;
+import ij.gui.GenericDialog;
+import ij.gui.ImageCanvas;
+import ij.gui.ImageWindow;
+import ij.gui.Overlay;
+import ij.gui.Roi;
 import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
 import ij.process.ColorProcessor;
-import ij.process.ImageProcessor;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Random;
-
-import loci.formats.ChannelSeparator;
-import loci.formats.FormatException;
-import loci.plugins.config.SpringUtilities;
-import loci.plugins.util.ImageProcessorReader;
-import loci.plugins.util.LociPrefs;
-import ij.process.ImageConverter;
 import ij.text.TextPanel;
 import ij.text.TextWindow;
-import ij.gui.*;
 
-import java.awt.*;
+import java.awt.AWTEvent;
+import java.awt.Checkbox;
+import java.awt.CheckboxGroup;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.Panel;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -45,6 +43,13 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Random;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -58,6 +63,11 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import loci.formats.ChannelSeparator;
+import loci.formats.FormatException;
+import loci.plugins.config.SpringUtilities;
+import loci.plugins.util.LociPrefs;
+
 
 /*
  * An ImageJ plugin that uses Bio-Formats to open and save 
@@ -65,52 +75,35 @@ import javax.swing.event.DocumentListener;
  */
 
 public class Subimage_Extractor2 implements 
-//PlugIn, DialogListener, ActionListener, DocumentListener {
 PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 
 
 	private String dir, name, id;
-	private static int subWidth = 1028, subHeight = 768,
-			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
+	private static int subWidth = 4800, subHeight = 3600;
 	
 	private static ImagePlus impThumb;
 
 	private JFrame rg;
 	private static int subsStartX, subsStartY;
-	private static final String[] subimageSpacingSpecifiedBy = 
-		{"Number of Subimages", "Space between Subimages"};
-	private static final int NUMBER = 0, SPACE = 1;
-	private static String spacing = subimageSpacingSpecifiedBy[NUMBER];
 	private static final String[] subimagesLocatedBy = 
 		{"Random offset", "Fix to the upper left corner of the ROI", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 	private static String location = subimagesLocatedBy[STARTINGPOINT];
 	
 	private Random random = new Random(System.currentTimeMillis());
-	private int appX, appY;
 	private int imageWidth, imageHeight;
 	private int thumbWidth, thumbHeight;
 	private double ratioImageThumbX, ratioImageThumbY;
-	//private int rectX, rectY;
-	//private int rectWidth, rectHeight;
 	private String err = "";
-	private CheckboxGroup cg1;
 	private static Image iconImg;
 	private Component[] compGroup1, compGroup2;
-	private static boolean cg1EqualsNumber = true;
-	private static final int[] numberFields = {6, 7, 8, 9};
-	private static final int[] spaceFields = {11, 12, 13, 14};
-	private static final int[] manualFields = {17, 18, 19, 20};
-	private boolean spacingFieldChange = false;
-	private int count = 2;
-	private TextField noSubHorInput, noSubVertInput;
-	private TextField spaceHorInput, spaceVertInput;
+	private static final int[] manualFields = { 6, 7, 8, 9 };
 	private JTextField inputX ,inputY, inputWidth, inputHeight;
 	private boolean inputByMouseDragged;
 	protected boolean mouseReleased;
-	private static boolean openInStack = true;
 	private int actRoiX, actRoiY, actRoiWidth, actRoiHeight;
-	private boolean openInVirtualStack;
+	private int noSubVert;
+	private int noSubHol;
 
 	
 	@Override
@@ -369,60 +362,23 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	
 	void askSettings() {
-		
-		if(appX == 0){
-			noSubHor = 3;
-			noSubVert = 3;
-			spaceHor = 
-					(int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
-			spaceVert = 
-					(int) ((actRoiHeight + subHeight)/noSubVert - subHeight);
-		}
-		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
 		gd.addNumericField("Subimage Width:", subWidth, 0);
 		gd.addNumericField("Subimage Height:", subHeight, 0);
-		
-		gd.setInsets(10, 10, 0);
-		gd.addMessage("Spacing of Subimages: ");
-		cg1 = new CheckboxGroup();
-		addRadioButton(gd, subimageSpacingSpecifiedBy[NUMBER], cg1, cg1EqualsNumber);
-		gd.addNumericField("Horizontally", noSubHor, 0);
-		gd.addNumericField("Vertically", noSubVert, 0);
-		
-		addRadioButton(gd, subimageSpacingSpecifiedBy[SPACE], cg1, !cg1EqualsNumber);
-		gd.addNumericField("Horizontally", spaceHor, 0);
-		gd.addNumericField("Vertically", spaceVert, 0);
-		
-		
 		gd.addRadioButtonGroup("Location of Subimages: ", subimagesLocatedBy,
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
-		gd.addCheckbox("Open subimages as a Stack", openInStack);
+		
 		
 		compGroup2 = gd.getComponents();
 		
-		if(cg1EqualsNumber){
-			for (int i : numberFields)
-				compGroup2[i].setEnabled(true);
-			for (int i : spaceFields)
-				compGroup2[i].setEnabled(false);
-		} else {
-			for (int i : numberFields)
-				compGroup2[i].setEnabled(false);
-			for (int i : spaceFields)
-				compGroup2[i].setEnabled(true);
-		}
 		
 		for (int i : manualFields)
 			compGroup2[i].setEnabled(false);
 		
-		//parts to avoid flickering
-		noSubHorInput = (TextField) compGroup2[7];
-		noSubVertInput = (TextField) compGroup2[9];
-		spaceHorInput = (TextField) compGroup2[12];
-		spaceVertInput = (TextField) compGroup2[14];
+		
+		
 		
 		//drawSubimagesOnThumb();
 		gd.addDialogListener(this);
@@ -437,7 +393,6 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				openSubimages();
 			else {
 				IJ.error("Subimage Extractor " + err);
-				appX = 0;
 				impThumb.close();
 			}
 		}
@@ -446,88 +401,26 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	@Override
 	public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
-		//parts to avoid flickering
-		//Because two numeric fields are changed automatically,
-		//there are two unnecessary cycles of calculations triggered by the listener.
-		if(count < 2) {
-			count ++;
-			return true;
-		}
-		
 		subWidth = (int) gd.getNextNumber();
 		subHeight = (int) gd.getNextNumber();
-		spacing = radioButtonCheck(cg1);
-		int currentNoSubHor = (int) gd.getNextNumber();
-		int currentNoSubVert = (int) gd.getNextNumber();
-		int currentSpaceHor = (int) gd.getNextNumber();
-		int currentSpaceVert = (int) gd.getNextNumber();
 		location = gd.getNextRadioButton();
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
-		openInStack = gd.getNextBoolean();
+		
 		err = "";
 		IJ.showStatus(err);
 		
-		//parts to avoid flickering
-		if(currentNoSubHor != noSubHor || currentNoSubVert != noSubVert || 
-				currentSpaceHor != spaceHor || currentSpaceVert != spaceVert){
-			spacingFieldChange = true;
-			count = 0;
+		if(subWidth < 1 || subHeight < 1){
+			err += "Subimage Width and Height should be positive values";
+			IJ.showStatus(err);
+			return true;
 		}
 		
-		noSubHor = currentNoSubHor;
-		noSubVert = currentNoSubVert;
-		spaceHor = currentSpaceHor;
-		spaceVert = currentSpaceVert;
+		noSubVert = (int) (actRoiHeight / subHeight + 1);
+		noSubHol = (int) (actRoiWidth / subWidth + 1);
 		
-		cg1EqualsNumber = subimageSpacingSpecifiedBy[NUMBER].equals(spacing);
-
-		if(cg1EqualsNumber){
-			for (int i : numberFields)
-				compGroup2[i].setEnabled(true);
-			for (int i : spaceFields)
-				compGroup2[i].setEnabled(false);
-			if(noSubHor <= 0 || noSubVert <= 0){
-				err = "Number of Subimages should be a positive integer\n";
-				spacingFieldChange = false;
-				count = 2;
-				//skip calculation of space values which 
-				//makes "the parts to avoid flickering" not necessary
-			} else {
-				spaceHor = (int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
-				
-				spaceVert = (int) ((actRoiHeight + subHeight)/noSubVert - subHeight);
-				
-				if(spacingFieldChange){
-					spaceHorInput.setText(String.valueOf(spaceHor));
-					spaceVertInput.setText(String.valueOf(spaceVert));
-					spacingFieldChange = false;
-				}
-			}
-		}
-		
-		appX = subWidth + spaceHor;
-		appY = subHeight + spaceVert;
-		
-		if(!cg1EqualsNumber){
-			for (int i : numberFields)
-				compGroup2[i].setEnabled(false);
-			for (int i : spaceFields)
-				compGroup2[i].setEnabled(true);
-			
-			noSubHor = (int) (actRoiWidth/ appX) + 1;
-			noSubVert = (int) (actRoiHeight / appY) + 1;
-			
-			if(spacingFieldChange){
-				noSubHorInput.setText(String.valueOf(noSubHor));
-				noSubVertInput.setText(String.valueOf(noSubVert));
-				spacingFieldChange = false;
-			}
-		}
-		
-		
-		
-		
+		if(noSubVert * noSubHol > 800)
+			err += "Not allowed to have more than 800 slices";
 		
 		if(location.equalsIgnoreCase(subimagesLocatedBy[MANUAL])){
 			for (int i : manualFields)
@@ -537,24 +430,15 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				compGroup2[i].setEnabled(false);
 			
 			if(location.equals(subimagesLocatedBy[RANDOM])){
-				subsStartX = random.nextInt(appX) - subWidth + actRoiX;
-				subsStartY = random.nextInt(appY) - subHeight + actRoiY;
+				subsStartX = random.nextInt(subWidth) - subWidth + actRoiX;
+				subsStartY = random.nextInt(subHeight) - subHeight + actRoiY;
 				
 			} else if(location.equals(subimagesLocatedBy[STARTINGPOINT])){
 				subsStartX = actRoiX;
 				subsStartY = actRoiY;
-				spacingFieldChange = false;
 			}
 		}
 		
-		if(spaceHor < 0 || spaceVert < 0)
-			err += "Space between subimages should be 0 or more\n";
-		
-		if(subsStartX + appX * noSubHor - spaceHor > imageWidth||
-				subsStartY + appY * noSubVert - spaceVert > imageHeight) 
-			err += "Subimages cannot be out of the image\n";
-		if(noSubHor * noSubVert > 800)
-			err += "Not allowed to open more than 800 subimages\n";
 		
 		if(!"".equals(err)) {
 			IJ.showStatus(err);
@@ -569,7 +453,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	void openSubimages(){
 		//IJ.log("opening");
-		SVSStack ss = new SVSStack(dir, name, 0, subsStartX, subsStartY, subWidth, subHeight);
+		SVSStack ss = new SVSStack(dir, name, 0, subsStartX, subsStartY, 
+				actRoiWidth, actRoiHeight, subWidth, subHeight);
 		ImagePlus imp = new ImagePlus(name, ss);
 		imp.show();
 		
@@ -591,15 +476,17 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			}
 		}
 		
+		
+		
 		for(int m = 0; m < noSubVert; m++) {
-			int subimageY = subsStartY + appY * m;
-			for (int n = 0; n < noSubHor; n++) {
-				int subimageX = subsStartX + appX * n;
+			int subimageY = subsStartY + subHeight * m;
+			for (int n = 0; n < noSubHol; n++) {
+				int subimageX = subsStartX + subWidth * n;
 				Roi roi = new Roi((int) (subimageX/ratioImageThumbX), 
 						(int) (subimageY/ratioImageThumbY), 
 						(int) (subWidth/ratioImageThumbX), 
 						(int) (subHeight/ratioImageThumbY));
-		roi.setName("Sub" + (noSubHor * m + n + 1));
+		roi.setName("Sub" + (noSubHol * m + n + 1));
 		roi.setStrokeColor(Color.green);
 		ol.addElement(roi);
 			}
@@ -646,9 +533,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 						 actRoiX + "\t" + actRoiY + "\t" + 
 						 actRoiWidth + "\t" + actRoiHeight + "\t" + 
 						subsStartX + "\t" + subsStartY + "\t" + 
-						subWidth + "\t" + subHeight + "\t" + 
-						spaceHor + "\t" + spaceVert + "\t" + 
-						noSubHor + "\t" + noSubVert;
+						subWidth + "\t" + subHeight + "\t\t\t\t";
 			
 			showHistory(parameters);
 		}

@@ -25,7 +25,8 @@ public class SVSStack extends ImageStack {
 
 	/** Creates a new, empty virtual stack */
 	
-	public SVSStack(String directory, String name, int series, int originX, int originY, int width, int height){
+	public SVSStack(String directory, String name, int series, int originX, int originY, 
+			int roiWidth, int roiHeight, int width, int height){
 		//IJ.log("constructor");
 		
 		
@@ -36,6 +37,9 @@ public class SVSStack extends ImageStack {
 		this.name = name;
 		this.directory = directory;
 		this.series = series;
+		tilesHol = (int) (roiWidth / this.width + 1);
+		tilesVert = (int) (roiHeight / this.height + 1);
+		nSlices = tilesHol * tilesVert;
 		//IJ.log("constructor2");
 		r = new ChannelSeparator(LociPrefs.makeImageReader());
 		//IJ.log("constructor3");
@@ -43,9 +47,7 @@ public class SVSStack extends ImageStack {
 			//IJ.log("SVSStack constructor");
 			r.setId(this.directory + this.name);
 			r.setSeries(this.series);
-			tilesHol = (int) (r.getSizeX() / this.width + 1);
-			tilesVert = (int) (r.getSizeY() / this.height + 1);
-			nSlices = tilesHol * tilesVert;
+			
 		}
 		catch (FormatException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
