@@ -482,7 +482,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			int subimageY = subsStartY + subHeight * m;
 			for (int n = 0; n < noSubHol; n++) {
 				int subimageX = subsStartX + subWidth * n;
-				Roi roi = new Roi((int) (subimageX/ratioImageThumbX), 
+				Roi roi = new Roi(
+						(int) (subimageX/ratioImageThumbX), 
 						(int) (subimageY/ratioImageThumbY), 
 						(int) (subWidth/ratioImageThumbX), 
 						(int) (subHeight/ratioImageThumbY));

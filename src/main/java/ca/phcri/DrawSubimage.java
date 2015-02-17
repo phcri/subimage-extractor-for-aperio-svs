@@ -85,7 +85,7 @@ public ImageProcessor call() throws Exception {
 	
 	
 	int i = (sliceN - 1) % noSubHol;
-	int j = (int) ((sliceN - 1) / noSubVert);
+	int j = (int) (sliceN / noSubVert);
 	
 	//check if originX and/or originY >= 0;
 	int subimageX = originX + width * i;

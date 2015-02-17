@@ -31,6 +31,7 @@ public class SVSStack extends ImageStack{
 	String directory;
 	static int cs1, cs2;
 	static ImageProcessor cip1, cip2;
+	ExecutorService executor;
 
 
 	/** Creates a new, empty virtual stack */
@@ -105,7 +106,12 @@ public class SVSStack extends ImageStack{
 			IJ.log("returning cip1");
 			return cip1;
 		}
-		ExecutorService executor = Executors.newFixedThreadPool(2);
+		
+		if(executor != null && !executor.isTerminated()){
+			IJ.log("not terminated. Shutting down");
+			executor.shutdownNow();
+		}
+		executor = Executors.newFixedThreadPool(2);
 		
 		List<Future<ImageProcessor>> ipList = new ArrayList<Future<ImageProcessor>>();
 		for(int i = 0; i < 2; i++){
@@ -125,6 +131,7 @@ public class SVSStack extends ImageStack{
 		try{
 			ip = ipList.get(0).get();
 		} catch (InterruptedException e){
+			IJ.log("terminated by shutdownNow");
 			e.printStackTrace();
 		} catch (ExecutionException e){
 			e.printStackTrace();
