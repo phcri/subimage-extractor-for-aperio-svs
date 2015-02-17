@@ -79,7 +79,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 
 
 	private String dir, name, id;
-	private static int subWidth = 4800, subHeight = 3600;
+	private static int subWidth = 4800, subHeight = 3200;
 	
 	private static ImagePlus impThumb;
 
