@@ -18,7 +18,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 	private int width, height;
 	private int originX, originY;
 	private ChannelSeparator r;
-	private final static int cacheSize = 5, cacheForCurrentSlice = 2;
+	private final static int cacheSize = 6, cacheForCurrentSlice = 2;
 	private static int[] cachedSlices = new int[cacheSize];
 	private static ImageProcessor[] cachedIPs = new ImageProcessor[cacheSize]; 
 
@@ -54,60 +54,73 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 	
 @Override
 public ImageProcessor call() throws Exception {
-	IJ.log("thread " + relativePosToCurrent + " has started");
+	IJ.log("thread " + relativePosToCurrent + " of "
+			+ "the slice " + (sliceNumber - relativePosToCurrent) + " has been started");
 	//checking if hitting the cache and replace data in the cache space
 	//the replacement is separately done 
 	//depending on sign of (cacheNo - cacheForCurrentSlice)
 	for(int cacheNo = 0; cacheNo < cacheForCurrentSlice; cacheNo++){
 		
 		if(sliceNumber == cachedSlices[cacheNo]){
-			for(int k = cacheSize - 1; k >= 0; k--)
-				//replacing date in the cache space
-				if(k + cacheNo - cacheForCurrentSlice >= 0
-						&& cachedIPs[k + cacheNo - cacheForCurrentSlice] != null){
+			if(relativePosToCurrent == 0){
+				for(int k = cacheSize - 1; k >= 0; k--)
+					//replacing date in the cache space
+					if(k + cacheNo - cacheForCurrentSlice >= 0
+							&& cachedIPs[k + cacheNo - cacheForCurrentSlice] != null){
+						
+						cachedIPs[k] = 
+								(ImageProcessor) cachedIPs[k + cacheNo - cacheForCurrentSlice]
+										.clone();
+						cachedSlices[k] = 
+								cachedSlices[k + cacheNo - cacheForCurrentSlice];
 					
-					cachedIPs[k] = 
-							(ImageProcessor) cachedIPs[k + cacheNo - cacheForCurrentSlice]
-									.clone();
-					cachedSlices[k] = 
-							cachedSlices[k + cacheNo - cacheForCurrentSlice];
+					}else{
+						cachedIPs[k] = null;
+						cachedSlices[k] = -1;
+					}
 				
-				}else{
-					cachedIPs[k] = null;
-					cachedSlices[k] = -1;
-				}
+				IJ.log("called cache" + cacheNo + 
+						" of " + (sliceNumber - relativePosToCurrent));
+				
+				return cachedIPs[cacheForCurrentSlice];
+				
+			}
 			
-			IJ.log("called cache" + cacheNo + 
-					" of " + (sliceNumber - relativePosToCurrent));
+			return cachedIPs[cacheNo];
+		} 
 			
-			return cachedIPs[cacheForCurrentSlice];
-		}
 	}
 	
 
 	for(int cacheNo = cacheForCurrentSlice; cacheNo < cacheSize; cacheNo++){
 		
 		if(sliceNumber == cachedSlices[cacheNo]){
-			//replacing date in the cache space
-			for(int k = 0; k < cacheSize; k++)
-				
-				if(k + cacheNo - cacheForCurrentSlice < cacheSize
-						&& cachedIPs[k + cacheNo - cacheForCurrentSlice] != null){
+			
+			if(relativePosToCurrent == 0){
+				//replacing date in the cache space
+				for(int k = 0; k < cacheSize; k++)
 					
-					cachedIPs[k] = 
-							(ImageProcessor) cachedIPs[k + cacheNo - cacheForCurrentSlice]
-									.clone();
-					cachedSlices[k] = 
-							cachedSlices[k + cacheNo - cacheForCurrentSlice];
-				}else{
-					cachedIPs[k] = null;
-					cachedSlices[k] = -1;
-				}
-			
-			IJ.log("called cache" + cacheNo + 
-					" of " + (sliceNumber - relativePosToCurrent));
-			
-			return cachedIPs[cacheForCurrentSlice];
+					if(k + cacheNo - cacheForCurrentSlice < cacheSize
+							&& cachedIPs[k + cacheNo - cacheForCurrentSlice] != null){
+						
+						cachedIPs[k] = 
+								(ImageProcessor) cachedIPs[k + cacheNo - cacheForCurrentSlice]
+										.clone();
+						cachedSlices[k] = 
+								cachedSlices[k + cacheNo - cacheForCurrentSlice];
+					}else{
+						cachedIPs[k] = null;
+						cachedSlices[k] = -1;
+					}
+				
+				IJ.log("called cache" + cacheNo + 
+						" of " + (sliceNumber - relativePosToCurrent));
+				
+				return cachedIPs[cacheForCurrentSlice];
+				
+			}
+		
+			return cachedIPs[cacheNo];
 		}
 	}
 	

@@ -120,8 +120,8 @@ public class SVSStack extends ImageStack{
 		List<Future<ImageProcessor>> ipList = 
 				new ArrayList<Future<ImageProcessor>>();
 		
-		for(int i = 0; i < 2; i++){
-			IJ.log("submitting an order to thread " + i);
+		for(int i = 0; i < 3; i++){
+			IJ.log("submitting an order to thread " + i + " in slice " + n);
 			Future<ImageProcessor> future = 
 					executor.submit(
 							new DrawSubimage(n, i, path, series, 
@@ -131,7 +131,7 @@ public class SVSStack extends ImageStack{
 			ipList.add(future);
 			
 		}
-		/*
+		
 		if(n > 1){
 			IJ.log("starting thread -1");
 			Future<ImageProcessor> future = 
@@ -142,8 +142,9 @@ public class SVSStack extends ImageStack{
 						);
 			ipList.add(future);
 		}
-		*/
+		
 		executor.shutdown();
+		IJ.log("executor shutdown called in getProcessor for slice " + n);
 		
 		try{
 			ip = ipList.get(0).get();
