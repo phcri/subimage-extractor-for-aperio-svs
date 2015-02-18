@@ -21,7 +21,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 	private static int[] cachedSlices = new int[3];
 	private static ImageProcessor[] cachedProcessors = new ImageProcessor[3]; 
 
-	DrawSubimage(int startSlice, int cacheN, String directory, String name, int series,
+	DrawSubimage(int startSlice, int cacheN, String path, String name, int series,
 			int originX, int originY, int width, int height, 
 			int noSubHol, int noSubVert){
 		
@@ -39,7 +39,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 		//IJ.log("constructor3");
 		try {
 			//IJ.log("SVSStack constructor");
-			r.setId(directory + name);
+			r.setId(path);
 			r.setSeries(series);
 			
 		}

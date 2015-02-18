@@ -78,7 +78,7 @@ public class Subimage_Extractor2 implements
 PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 
 
-	private String dir, name, id;
+	private String name, path;
 	private static int subWidth = 4800, subHeight = 3200;
 	
 	private static ImagePlus impThumb;
@@ -114,15 +114,18 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 
 	void openThumb(String arg) {
 		OpenDialog od = new OpenDialog("Open Image File...", arg);
-		dir = od.getDirectory();
+		path = od.getPath();
 		name = od.getFileName();
-		id = dir + name;	
+		
+		if(path == null)
+			return;
+		
 		ChannelSeparator r = new ChannelSeparator(LociPrefs.makeImageReader());
 
 		
 		try {
 			IJ.showStatus("Examining file " + name);
-			r.setId(id);
+			r.setId(path);
 			r.setSeries(0);
 			imageWidth = r.getSizeX();
 			imageHeight = r.getSizeY();
@@ -167,6 +170,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			
 			r.close();
 			IJ.showStatus("");
+			roiGetter();
 		}
 		catch (FormatException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
@@ -175,7 +179,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
 		}
 		
-		roiGetter();
+		
 	}
 	
 	@Override
@@ -453,7 +457,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	void openSubimages(){
 		//IJ.log("opening");
-		SVSStack ss = new SVSStack(dir, name, 0, subsStartX, subsStartY, 
+		SVSStack ss = new SVSStack(path, name, 0, subsStartX, subsStartY, 
 				subWidth, subHeight, noSubHol, noSubVert);
 		ImagePlus imp = new ImagePlus(name, ss);
 		imp.show();

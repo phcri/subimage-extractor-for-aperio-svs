@@ -28,7 +28,7 @@ public class SVSStack extends ImageStack{
 	int series;
 	String name;
 	ImageProcessor ip;
-	String directory;
+	String path;
 	static int cs1, cs2;
 	static ImageProcessor cip1, cip2;
 	ExecutorService executor;
@@ -36,7 +36,7 @@ public class SVSStack extends ImageStack{
 
 	/** Creates a new, empty virtual stack */
 	
-	public SVSStack(String directory, String name, int series, int originX, int originY, 
+	public SVSStack(String path, String name, int series, int originX, int originY, 
 			int width, int height, int noSubHol, int noSubVert){
 		//IJ.log("constructor");
 		this.originX = originX;
@@ -44,7 +44,7 @@ public class SVSStack extends ImageStack{
 		this.width = width;
 		this.height = height;
 		this.name = name;
-		this.directory = directory;
+		this.path = path;
 		this.series = series;
 		this.noSubHol = noSubHol;
 		this.noSubVert = noSubVert;
@@ -118,7 +118,7 @@ public class SVSStack extends ImageStack{
 			IJ.log("starting thread " + i);
 			Future<ImageProcessor> future = 
 					executor.submit(
-							new DrawSubimage(n, i, directory, name, series, 
+							new DrawSubimage(n, i, path, name, series, 
 									originX, originY, width, height,
 									noSubHol, noSubVert)
 							);
