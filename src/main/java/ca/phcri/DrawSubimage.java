@@ -227,7 +227,7 @@ public ImageProcessor call() throws Exception {
 	
 	int positionH = (sliceNumber - 1) % noSubHol;
 	
-	int positionV = (int) (sliceNumber / noSubHol);
+	int positionV = (int) ((sliceNumber - 1) / noSubHol);
 	
 	//check if originX and/or originY >= 0;
 	int subimageX = originX + width * positionH;
