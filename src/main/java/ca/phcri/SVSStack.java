@@ -6,6 +6,7 @@ import ij.process.ImageProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -120,15 +121,30 @@ public class SVSStack extends ImageStack{
 		List<Future<ImageProcessor>> ipList = 
 				new ArrayList<Future<ImageProcessor>>();
 		
+		CountDownLatch startSignal = new CountDownLatch(1);
+		
 		for(int i = 0; i < 3; i++){
 			IJ.log("submitting an order to thread " + i + " in slice " + n);
+			
+			if(n + i > nSlices)
+				break;
+			
 			Future<ImageProcessor> future = 
 					executor.submit(
 							new DrawSubimage(n, i, path, series, 
 									originX, originY, width, height,
-									noSubHol, noSubVert)
+									noSubHol, noSubVert, startSignal)
 							);
 			ipList.add(future);
+			
+			try {
+				IJ.log("comming to the latch");
+				startSignal.await();
+				IJ.log("the latch is open");
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 		}
 		
@@ -138,7 +154,7 @@ public class SVSStack extends ImageStack{
 				executor.submit(
 						new DrawSubimage(n, -1, path, series, 
 								originX, originY, width, height,
-								noSubHol, noSubVert)
+								noSubHol, noSubVert, startSignal)
 						);
 			ipList.add(future);
 		}

@@ -6,6 +6,7 @@ import ij.process.ImageProcessor;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 
 import loci.formats.ChannelSeparator;
 import loci.formats.FormatException;
@@ -21,10 +22,11 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 	private final static int cacheSize = 6, cacheForCurrentSlice = 2;
 	private static int[] cachedSlices = new int[cacheSize];
 	private static ImageProcessor[] cachedIPs = new ImageProcessor[cacheSize]; 
+	private final CountDownLatch startSignal;
 
 	DrawSubimage(int currentSlice, int relativePosToCurrent, String path, int series,
 			int originX, int originY, int width, int height, 
-			int noSubHol, int noSubVert){
+			int noSubHol, int noSubVert, CountDownLatch startSignal){
 		
 		this.sliceNumber = currentSlice + relativePosToCurrent;
 		this.relativePosToCurrent = relativePosToCurrent;
@@ -34,6 +36,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 		this.height =height;
 		this.noSubHol = noSubHol;
 		this.noSubVert = noSubVert;
+		this.startSignal = startSignal;
 		
 		
 		r = new ChannelSeparator(LociPrefs.makeImageReader());
@@ -59,10 +62,13 @@ public ImageProcessor call() throws Exception {
 	//checking if hitting the cache and replace data in the cache space
 	//the replacement is separately done 
 	//depending on sign of (cacheNo - cacheForCurrentSlice)
-	for(int cacheNo = 0; cacheNo < cacheForCurrentSlice; cacheNo++){
+	
+	if(relativePosToCurrent == 0){
+	
+		for(int cacheNo = 0; cacheNo < cacheForCurrentSlice; cacheNo++){
 		
-		if(sliceNumber == cachedSlices[cacheNo]){
-			if(relativePosToCurrent == 0){
+			if(sliceNumber == cachedSlices[cacheNo]){
+			
 				for(int k = cacheSize - 1; k >= 0; k--)
 					//replacing date in the cache space
 					if(k + cacheNo - cacheForCurrentSlice >= 0
@@ -79,50 +85,70 @@ public ImageProcessor call() throws Exception {
 						cachedSlices[k] = -1;
 					}
 				
-				IJ.log("called cache" + cacheNo + 
-						" of " + (sliceNumber - relativePosToCurrent));
+				IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
+						" of the slice " + (sliceNumber - relativePosToCurrent));
 				
+				IJ.log("opening the latch");
+				startSignal.countDown();
 				return cachedIPs[cacheForCurrentSlice];
 				
 			}
 			
-			return cachedIPs[cacheNo];
-		} 
+		}
+		
+		for(int cacheNo = cacheForCurrentSlice; cacheNo < cacheSize; cacheNo++){
 			
+			if(sliceNumber == cachedSlices[cacheNo]){
+				
+					//replacing date in the cache space
+					for(int k = 0; k < cacheSize; k++)
+						
+						if(k + cacheNo - cacheForCurrentSlice < cacheSize
+								&& cachedIPs[k + cacheNo - cacheForCurrentSlice] != null){
+							
+							cachedIPs[k] = 
+									(ImageProcessor) cachedIPs[k + cacheNo - cacheForCurrentSlice]
+											.clone();
+							cachedSlices[k] = 
+									cachedSlices[k + cacheNo - cacheForCurrentSlice];
+						}else{
+							cachedIPs[k] = null;
+							cachedSlices[k] = -1;
+						}
+					
+					IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
+							" of the slice " + (sliceNumber - relativePosToCurrent));
+					
+					IJ.log("opening the latch");
+					startSignal.countDown();
+					return cachedIPs[cacheForCurrentSlice];
+			}
+			
+		}
+		
+		
+		IJ.log("opening the latch");
+		startSignal.countDown();
+		
+	} else {
+		
+		for(int cacheNo = 0; cacheNo < cacheSize; cacheNo++){
+			
+			if(sliceNumber == cachedSlices[cacheNo]){
+				
+				IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
+						" of the slice " + (sliceNumber - relativePosToCurrent));
+				
+				return cachedIPs[cacheNo];
+			}
+			
+		}
+		
 	}
 	
-
-	for(int cacheNo = cacheForCurrentSlice; cacheNo < cacheSize; cacheNo++){
-		
-		if(sliceNumber == cachedSlices[cacheNo]){
+	IJ.log("thread " + relativePosToCurrent + " of "
+			+ "the slice " + (sliceNumber - relativePosToCurrent) + " did not hit the cache");
 			
-			if(relativePosToCurrent == 0){
-				//replacing date in the cache space
-				for(int k = 0; k < cacheSize; k++)
-					
-					if(k + cacheNo - cacheForCurrentSlice < cacheSize
-							&& cachedIPs[k + cacheNo - cacheForCurrentSlice] != null){
-						
-						cachedIPs[k] = 
-								(ImageProcessor) cachedIPs[k + cacheNo - cacheForCurrentSlice]
-										.clone();
-						cachedSlices[k] = 
-								cachedSlices[k + cacheNo - cacheForCurrentSlice];
-					}else{
-						cachedIPs[k] = null;
-						cachedSlices[k] = -1;
-					}
-				
-				IJ.log("called cache" + cacheNo + 
-						" of " + (sliceNumber - relativePosToCurrent));
-				
-				return cachedIPs[cacheForCurrentSlice];
-				
-			}
-		
-			return cachedIPs[cacheNo];
-		}
-	}
 	
 	
 	
