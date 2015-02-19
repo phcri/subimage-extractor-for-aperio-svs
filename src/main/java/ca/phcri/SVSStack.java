@@ -96,16 +96,22 @@ public class SVSStack extends ImageStack{
 	*/
 	@Override
 	public ImageProcessor getProcessor(int n) {
-		IJ.log("\ngetProcessor called for slice " + n);
+		if (IJ.debugMode) 
+			IJ.log("\ngetProcessor called for slice " + n);
+		
 		if(n == cachedSlice){
-			IJ.log("returning a clone of the cashed processor");
+			if (IJ.debugMode) 
+				IJ.log("returning a clone of the cashed processor");
+			
 			if(cachedIp == null)
 				return null;
 			return (ImageProcessor) cachedIp.clone();
 		}
 		
 		if(executor != null && !executor.isTerminated()){
-			IJ.log("not terminated. Shutting down");
+			if (IJ.debugMode) 
+				IJ.log("not terminated. Shutting down");
+			
 			executor.shutdownNow();
 		}
 		
@@ -116,7 +122,8 @@ public class SVSStack extends ImageStack{
 		//Executors need to be created every time (old ones have been shutdown)
 		int threadPoolSize = 2;
 		executor = Executors.newFixedThreadPool(threadPoolSize);
-		IJ.log("threadPoolSize " + threadPoolSize);
+		if (IJ.debugMode) 
+			IJ.log("threadPoolSize " + threadPoolSize);
 		
 		List<Future<ImageProcessor>> ipList = 
 				new ArrayList<Future<ImageProcessor>>();
@@ -124,7 +131,8 @@ public class SVSStack extends ImageStack{
 		CountDownLatch startSignal = new CountDownLatch(1);
 		
 		for(int i = 0; i < 3; i++){
-			IJ.log("submitting an order to thread " + i + " in slice " + n);
+			if (IJ.debugMode) 
+				IJ.log("submitting an order to thread " + i + " in slice " + n);
 			
 			if(n + i > nSlices)
 				break;
@@ -138,9 +146,14 @@ public class SVSStack extends ImageStack{
 			ipList.add(future);
 			
 			try {
-				IJ.log("comming to the latch");
+				if (IJ.debugMode) 
+					IJ.log("comming to the latch");
+				
 				startSignal.await();
-				IJ.log("the latch is open");
+				
+				if (IJ.debugMode) 
+					IJ.log("the latch is open");
+				
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -149,7 +162,9 @@ public class SVSStack extends ImageStack{
 		}
 		
 		if(n > 1){
-			IJ.log("starting thread -1");
+			if (IJ.debugMode) 
+				IJ.log("starting thread -1");
+			
 			Future<ImageProcessor> future = 
 				executor.submit(
 						new DrawSubimage(n, -1, path, series, 
@@ -160,7 +175,9 @@ public class SVSStack extends ImageStack{
 		}
 		
 		executor.shutdown();
-		IJ.log("executor shutdown called in getProcessor for slice " + n);
+		
+		if (IJ.debugMode) 
+			IJ.log("executor shutdown called in getProcessor for slice " + n);
 		
 		try{
 			ip = ipList.get(0).get();

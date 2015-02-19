@@ -62,7 +62,8 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 	
 @Override
 public ImageProcessor call() throws Exception {
-	IJ.log("thread " + relativePosToCurrent + " of "
+	if (IJ.debugMode) 
+		IJ.log("thread " + relativePosToCurrent + " of "
 			+ "the slice " + (sliceNumber - relativePosToCurrent) + " has been started");
 	//checking if hitting the cache and replace data in the cache space
 	//the replacement is separately done 
@@ -74,7 +75,8 @@ public ImageProcessor call() throws Exception {
 			
 			if(sliceNumber == cachedSlices[cacheNo]){
 				
-				IJ.log("thread " + relativePosToCurrent + 
+				if (IJ.debugMode) 
+					IJ.log("thread " + relativePosToCurrent + 
 						" of the slice " + (sliceNumber - relativePosToCurrent) + 
 						" has hit the cache " + cacheNo);
 				
@@ -97,11 +99,13 @@ public ImageProcessor call() throws Exception {
 							cachedSlices[k] = 0;
 						}
 					
-					IJ.log("The cache space has been shifted to the left");
+					if (IJ.debugMode) 
+						IJ.log("The cache space has been shifted to the left");
 					
 					cacheForCurrentSlice = cacheNo - moveInterval;
 					
-					IJ.log("opening the latch");
+					if (IJ.debugMode) 
+						IJ.log("opening the latch");
 					
 					startSignal.countDown();
 					
@@ -128,22 +132,26 @@ public ImageProcessor call() throws Exception {
 							cachedSlices[k] = 0;
 						}
 					
-					IJ.log("The cache space has been shifted to the right");
+					if (IJ.debugMode) 
+						IJ.log("The cache space has been shifted to the right");
 					
 					cacheForCurrentSlice = cacheNo + moveInterval;
 					
-					IJ.log("opening the latch");
+					if (IJ.debugMode) 
+						IJ.log("opening the latch");
 					
 					startSignal.countDown();
 					
 					return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
 				}
 				
-				IJ.log("No shift of the cache space");
+				if (IJ.debugMode) 
+					IJ.log("No shift of the cache space");
 				
 				cacheForCurrentSlice = cacheNo;
 				
-				IJ.log("opening the latch");
+				if (IJ.debugMode) 
+					IJ.log("opening the latch");
 				
 				startSignal.countDown();
 				
@@ -152,7 +160,8 @@ public ImageProcessor call() throws Exception {
 				
 		}
 		
-		IJ.log("thread " + relativePosToCurrent + " of "
+		if (IJ.debugMode) 
+			IJ.log("thread " + relativePosToCurrent + " of "
 				+ "the slice " + (sliceNumber - relativePosToCurrent)
 				+ " did not hit the cache");
 		
@@ -184,7 +193,8 @@ public ImageProcessor call() throws Exception {
 		
 		cachedIPs = newCachedIPs;
 		
-		IJ.log("opening the latch");
+		if (IJ.debugMode)
+			IJ.log("opening the latch");
 		
 		startSignal.countDown();
 		
@@ -195,7 +205,8 @@ public ImageProcessor call() throws Exception {
 			
 			if(sliceNumber == cachedSlices[cacheNo]){
 				
-				IJ.log("thread " + relativePosToCurrent + 
+				if (IJ.debugMode) 
+					IJ.log("thread " + relativePosToCurrent + 
 						" of the slice " + (sliceNumber - relativePosToCurrent) + 
 						" has hit the cache " + cacheNo);
 				
@@ -204,7 +215,8 @@ public ImageProcessor call() throws Exception {
 			
 		}
 		
-		IJ.log("thread " + relativePosToCurrent + " of "
+		if (IJ.debugMode) 
+			IJ.log("thread " + relativePosToCurrent + " of "
 				+ "the slice " + (sliceNumber - relativePosToCurrent)
 				+ " did not hit the cache");
 		
@@ -240,7 +252,8 @@ public ImageProcessor call() throws Exception {
 				= cp;
 		r.close();
 		
-		IJ.log("finishing thread " + relativePosToCurrent + " of "
+		if (IJ.debugMode) 
+			IJ.log("finishing thread " + relativePosToCurrent + " of "
 				+ "slice" + (sliceNumber - relativePosToCurrent));
 		
 		return cp;
@@ -253,7 +266,8 @@ public ImageProcessor call() throws Exception {
 		e.printStackTrace();
 	}
 	
-	IJ.log("closing r and returning null from " + relativePosToCurrent + " of "
+	if (IJ.debugMode) 
+		IJ.log("closing r and returning null from " + relativePosToCurrent + " of "
 			+ "slice" + (sliceNumber - relativePosToCurrent));
 	
 	r.close();
