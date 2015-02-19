@@ -23,7 +23,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 	private final static int cacheSize = 9;
 	private final static int cacheCenter = (int) ((cacheSize -1) / 2);
 	private final static int moveInterval = 3;
-	int cacheForCurrentSlice = 2;
+	private static int cacheForCurrentSlice;
 	private static int[] cachedSlices = new int[cacheSize];
 	private static ImageProcessor[] cachedIPs = new ImageProcessor[cacheSize]; 
 	private final CountDownLatch startSignal;
@@ -48,6 +48,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 		try {
 			//IJ.log("SVSStack constructor");
 			r.setId(path);
+			
 			r.setSeries(series);
 			
 		}
@@ -73,7 +74,11 @@ public ImageProcessor call() throws Exception {
 			
 			if(sliceNumber == cachedSlices[cacheNo]){
 				
-				if(sliceNumber >= cacheCenter + moveInterval){
+				IJ.log("thread " + relativePosToCurrent + 
+						" of the slice " + (sliceNumber - relativePosToCurrent) + 
+						" has hit the cache " + cacheNo);
+				
+				if(cacheNo >= cacheCenter + moveInterval){
 					
 					for(int k = 0; k < cacheSize; k++)
 						
@@ -88,19 +93,23 @@ public ImageProcessor call() throws Exception {
 						
 						}else{
 							cachedIPs[k] = null;
-							cachedSlices[k] = -1;
+							
+							cachedSlices[k] = 0;
 						}
 					
-					IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
-							" of the slice " + (sliceNumber - relativePosToCurrent));
 					IJ.log("The cache space has been shifted to the left");
+					
+					cacheForCurrentSlice = cacheNo - moveInterval;
+					
 					IJ.log("opening the latch");
+					
 					startSignal.countDown();
-					return cachedIPs[cacheNo - moveInterval];
+					
+					return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
 				}
 				
 				
-				if(sliceNumber <= cacheCenter - moveInterval){
+				if(cacheNo <= cacheCenter - moveInterval){
 					
 					for(int k = cacheSize - 1; k >= 0; k--)
 						
@@ -115,28 +124,70 @@ public ImageProcessor call() throws Exception {
 						
 						}else{
 							cachedIPs[k] = null;
-							cachedSlices[k] = -1;
+							
+							cachedSlices[k] = 0;
 						}
 					
-					IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
-							" of the slice " + (sliceNumber - relativePosToCurrent));
 					IJ.log("The cache space has been shifted to the right");
+					
+					cacheForCurrentSlice = cacheNo + moveInterval;
+					
 					IJ.log("opening the latch");
+					
 					startSignal.countDown();
-					return cachedIPs[cacheNo + moveInterval];
+					
+					return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
 				}
 				
-
-				IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
-						" of the slice " + (sliceNumber - relativePosToCurrent));
 				IJ.log("No shift of the cache space");
+				
+				cacheForCurrentSlice = cacheNo;
+				
 				IJ.log("opening the latch");
+				
 				startSignal.countDown();
-				return cachedIPs[cacheNo];
-			
+				
+				return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
 			}
-			
+				
 		}
+		
+		IJ.log("thread " + relativePosToCurrent + " of "
+				+ "the slice " + (sliceNumber - relativePosToCurrent)
+				+ " did not hit the cache");
+		
+		cacheForCurrentSlice = 
+				cacheCenter + sliceNumber % moveInterval - moveInterval + 1;
+		
+		//formatting the cache space
+		int[] newCachedSlices = new int[cacheSize];
+		
+		ImageProcessor[] newCachedIPs = new ImageProcessor[cacheSize];
+		
+		for(int i = 0; i < cacheSize; i++){
+			
+			for(int cacheNo = 0; cacheNo < cacheSize; cacheNo++){
+				
+				if(cachedSlices[cacheNo] == sliceNumber - cacheForCurrentSlice + i
+						&& cachedIPs[cacheNo] != null){
+					
+					newCachedSlices[i] 
+							= sliceNumber - cacheForCurrentSlice + i;
+					
+					newCachedIPs[i] 
+							= (ImageProcessor) cachedIPs[cacheNo].clone();
+				}
+			}
+		}
+		
+		cachedSlices = newCachedSlices;
+		
+		cachedIPs = newCachedIPs;
+		
+		IJ.log("opening the latch");
+		
+		startSignal.countDown();
+		
 		
 	} else {
 		
@@ -144,38 +195,42 @@ public ImageProcessor call() throws Exception {
 			
 			if(sliceNumber == cachedSlices[cacheNo]){
 				
-				IJ.log("thread " + relativePosToCurrent + " has hit the cache " + cacheNo + 
-						" of the slice " + (sliceNumber - relativePosToCurrent));
+				IJ.log("thread " + relativePosToCurrent + 
+						" of the slice " + (sliceNumber - relativePosToCurrent) + 
+						" has hit the cache " + cacheNo);
 				
-				return cachedIPs[cacheNo];
+				return (ImageProcessor) cachedIPs[cacheNo].clone();
 			}
 			
 		}
 		
+		IJ.log("thread " + relativePosToCurrent + " of "
+				+ "the slice " + (sliceNumber - relativePosToCurrent)
+				+ " did not hit the cache");
+		
 	}
-	
-	IJ.log("thread " + relativePosToCurrent + " of "
-			+ "the slice " + (sliceNumber - relativePosToCurrent) + " did not hit the cache");
-			
 	
 	
 	
 	int positionH = (sliceNumber - 1) % noSubHol;
+	
 	int positionV = (int) (sliceNumber / noSubHol);
 	
 	//check if originX and/or originY >= 0;
 	int subimageX = originX + width * positionH;
+	
 	int subimageY = originY + height * positionV;
 		
 	
 	try {
-		byte[] R = r.openBytes(0, subimageX, subimageY, 
-				width, height);
-		byte[] G = r.openBytes(1, subimageX, subimageY, 
-				width, height);
-		byte[] B = r.openBytes(2, subimageX, subimageY, 
-				width, height);
+		byte[] R = r.openBytes(0, subimageX, subimageY, width, height);
+		
+		byte[] G = r.openBytes(1, subimageX, subimageY, width, height);
+		
+		byte[] B = r.openBytes(2, subimageX, subimageY, width, height);
+		
 		ColorProcessor cp = new ColorProcessor(width, height);
+		
 		cp.setRGB(R, G, B);
 		
 		cachedSlices[cacheForCurrentSlice + relativePosToCurrent]
@@ -200,7 +255,9 @@ public ImageProcessor call() throws Exception {
 	
 	IJ.log("closing r and returning null from " + relativePosToCurrent + " of "
 			+ "slice" + (sliceNumber - relativePosToCurrent));
+	
 	r.close();
+	
 	return null;
 }
 }
