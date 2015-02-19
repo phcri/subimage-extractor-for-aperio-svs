@@ -98,7 +98,7 @@ public class SVSStack extends ImageStack {
 	public ImageProcessor getProcessor(int n) {
 		//ij.log("getProcessor: "+ n);
 		int i = (n - 1) % tilesHol;
-		int j = (int) ((n - 1) / tilesVert);
+		int j = (int) ((n - 1) / tilesHol);
 		
 		//check if originX and/or originY >= 0;
 		int subimageX = originX + width * i;
