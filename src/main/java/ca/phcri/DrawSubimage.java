@@ -15,7 +15,8 @@ import loci.plugins.util.LociPrefs;
 
 public class DrawSubimage implements Callable<ImageProcessor>{
 	private int sliceNumber, relativePosToCurrent;
-	private int noSubHol, noSubVert;
+	private int noSubHol;
+	//private int noSubVert;
 	private int width, height;
 	private int originX, originY;
 	private ChannelSeparator r;
@@ -35,7 +36,7 @@ public class DrawSubimage implements Callable<ImageProcessor>{
 		this.width = width;
 		this.height =height;
 		this.noSubHol = noSubHol;
-		this.noSubVert = noSubVert;
+		//this.noSubVert = noSubVert;
 		this.startSignal = startSignal;
 		
 		
@@ -153,7 +154,7 @@ public ImageProcessor call() throws Exception {
 	
 	
 	int positionH = (sliceNumber - 1) % noSubHol;
-	int positionV = (int) (sliceNumber / noSubVert);
+	int positionV = (int) (sliceNumber / noSubHol);
 	
 	//check if originX and/or originY >= 0;
 	int subimageX = originX + width * positionH;
