@@ -4,6 +4,7 @@ import ij.IJ;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -232,19 +233,83 @@ public ImageProcessor call() throws Exception {
 	int subimageX = originX + width * positionH;
 	
 	int subimageY = originY + height * positionV;
-		
+	
+	
+	
+	
+	
+	
 	
 	try {
-		byte[] R = r.openBytes(0, subimageX, subimageY, width, height);
-		
-		byte[] G = r.openBytes(1, subimageX, subimageY, width, height);
-		
-		byte[] B = r.openBytes(2, subimageX, subimageY, width, height);
 		
 		ColorProcessor cp = new ColorProcessor(width, height);
 		
-		cp.setRGB(R, G, B);
+		int imageWidth = r.getSizeX();
+		int imageHeight = r.getSizeY();
 		
+		if(subimageX < 0 || subimageY < 0 
+				|| subimageX + width > imageWidth || subimageY + height > imageHeight){
+			
+			int subimageXstart = subimageX;
+			
+			int subimageYstart = subimageY;
+			
+			int subimageXend = subimageX + width;
+			
+			int subimageYend = subimageY + height;
+			
+			if(subimageX < 0)
+				subimageXstart = 0;
+			
+			if(subimageY < 0)
+				subimageYstart = 0;
+			
+			if(subimageXend > imageWidth)
+				subimageXend = imageWidth;
+			
+			if(subimageYend > imageHeight)
+				subimageYend = imageHeight;
+			
+			
+			int newWidth = subimageXend - subimageXstart;
+			
+			int newHeight = subimageYend - subimageYstart;
+			
+			byte[] R = 
+					r.openBytes(0, subimageXstart, subimageYstart, newWidth, newHeight);
+			
+			byte[] G = 
+					r.openBytes(1, subimageXstart, subimageYstart, newWidth, newHeight);
+			
+			byte[] B = 
+					r.openBytes(2, subimageXstart, subimageYstart, newWidth, newHeight);
+			
+			
+			cp.setColor(Color.white);
+			
+			for(int i = 0; i < newWidth; i++){
+				for(int j = 0; j < newHeight; j++){
+					
+					int k = i + width * j;
+					
+					cp.putPixel(subimageXstart - subimageX + i,
+							subimageYstart - subimageY + j,  
+							0xff000000 | ((R[k]&0xff)<<16) | 
+							((G[k]&0xff)<<8) | B[k]&0xff);
+				}
+				
+			}
+			
+		} else {
+			byte[] R = r.openBytes(0, subimageX, subimageY, width, height);
+			
+			byte[] G = r.openBytes(1, subimageX, subimageY, width, height);
+			
+			byte[] B = r.openBytes(2, subimageX, subimageY, width, height);
+			
+			cp.setRGB(R, G, B);
+		}
+			
 		cachedSlices[cacheForCurrentSlice + relativePosToCurrent]
 				= sliceNumber;
 		
