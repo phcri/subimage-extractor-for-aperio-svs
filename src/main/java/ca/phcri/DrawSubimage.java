@@ -257,6 +257,7 @@ public ImageProcessor call() throws Exception {
 	try {
 		
 		ColorProcessor cp = new ColorProcessor(width, height);
+		cp.setColor(Color.WHITE);
 		
 		int imageWidth = r.getSizeX();
 		int imageHeight = r.getSizeY();
@@ -312,6 +313,7 @@ public ImageProcessor call() throws Exception {
 				}
 				
 			}
+			
 			
 		} else {
 			byte[] R = r.openBytes(0, subimageX, subimageY, width, height);
