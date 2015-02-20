@@ -100,12 +100,19 @@ public class SVSStack extends ImageStack{
 			IJ.log("\ngetProcessor called for slice " + n);
 		
 		if(n == cachedSlice){
+			/*
 			if (IJ.debugMode) 
 				IJ.log("returning a clone of the cashed processor");
 			
 			if(cachedIp == null)
 				return null;
 			return (ImageProcessor) cachedIp.clone();
+			*/
+			
+			if (IJ.debugMode) 
+				IJ.log("returning the reference tothe cashed processor");
+			
+			return cachedIp;
 		}
 		
 		

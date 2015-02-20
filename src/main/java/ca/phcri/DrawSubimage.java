@@ -120,7 +120,8 @@ public ImageProcessor call() throws Exception {
 					
 					startSignal.countDown();
 					
-					return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
+					//return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
+					return cachedIPs[cacheForCurrentSlice];
 				}
 				
 				
@@ -157,7 +158,8 @@ public ImageProcessor call() throws Exception {
 					
 					startSignal.countDown();
 					
-					return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
+					//return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
+					return cachedIPs[cacheForCurrentSlice];
 				}
 				
 				if (IJ.debugMode) 
@@ -170,7 +172,8 @@ public ImageProcessor call() throws Exception {
 				
 				startSignal.countDown();
 				
-				return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
+				//return (ImageProcessor) cachedIPs[cacheForCurrentSlice].clone();
+				return cachedIPs[cacheForCurrentSlice];
 			}
 				
 		}
@@ -221,7 +224,8 @@ public ImageProcessor call() throws Exception {
 						" of the slice " + (sliceNumber - relativePosToCurrent) + 
 						" has hit the cache " + cacheNo);
 				
-				return (ImageProcessor) cachedIPs[cacheNo].clone();
+				//return (ImageProcessor) cachedIPs[cacheNo].clone();
+				return cachedIPs[cacheNo];
 			}
 			
 		}
