@@ -299,12 +299,11 @@ public ImageProcessor call() throws Exception {
 					r.openBytes(2, subimageXstart, subimageYstart, newWidth, newHeight);
 			
 			
-			cp.setColor(Color.white);
 			
 			for(int i = 0; i < newWidth; i++){
 				for(int j = 0; j < newHeight; j++){
 					
-					int k = i + width * j;
+					int k = i + newWidth * j;
 					
 					cp.putPixel(subimageXstart - subimageX + i,
 							subimageYstart - subimageY + j,  
