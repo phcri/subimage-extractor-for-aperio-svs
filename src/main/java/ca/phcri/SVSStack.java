@@ -108,6 +108,7 @@ public class SVSStack extends ImageStack{
 			return (ImageProcessor) cachedIp.clone();
 		}
 		
+		
 		if(executor != null && !executor.isTerminated()){
 			if (IJ.debugMode) 
 				IJ.log("not terminated. Shutting down");
@@ -160,18 +161,20 @@ public class SVSStack extends ImageStack{
 			}
 			
 		}
-		
-		if(n > 1){
-			if (IJ.debugMode) 
-				IJ.log("starting thread -1");
-			
-			Future<ImageProcessor> future = 
-				executor.submit(
-						new DrawSubimage(n, -1, path, series, 
-								originX, originY, width, height,
-								noSubHol, noSubVert, startSignal)
-						);
-			ipList.add(future);
+	
+		for(int i = -1; i > -2; i--){
+			if(n + i > 0){
+				if (IJ.debugMode) 
+					IJ.log("starting thread " + i);
+				
+				Future<ImageProcessor> future = 
+					executor.submit(
+							new DrawSubimage(n, i, path, series, 
+									originX, originY, width, height,
+									noSubHol, noSubVert, startSignal)
+							);
+				ipList.add(future);
+			}
 		}
 		
 		executor.shutdown();

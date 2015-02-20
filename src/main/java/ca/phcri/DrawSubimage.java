@@ -71,7 +71,13 @@ public ImageProcessor call() throws Exception {
 	//depending on sign of (cacheNo - cacheForCurrentSlice)
 	
 	if(relativePosToCurrent == 0){
-	
+		
+		//formatting the cache space
+				int[] newCachedSlices = new int[cacheSize];
+				
+				ImageProcessor[] newCachedIPs = new ImageProcessor[cacheSize];
+				
+				
 		for(int cacheNo = 0; cacheNo < cacheSize; cacheNo++){
 			
 			if(sliceNumber == cachedSlices[cacheNo]){
@@ -88,17 +94,21 @@ public ImageProcessor call() throws Exception {
 						if(k - moveInterval > 0 
 								&& cachedIPs[k] != null){
 							
-							cachedIPs[k - moveInterval]
-									= (ImageProcessor) cachedIPs[k].clone();
+							newCachedIPs[k - moveInterval]
+									= cachedIPs[k];
 						
-							cachedSlices[k - moveInterval]
+							newCachedSlices[k - moveInterval]
 									= cachedSlices[k];
 						
 						}else{
-							cachedIPs[k] = null;
+							newCachedIPs[k] = null;
 							
-							cachedSlices[k] = 0;
+							newCachedSlices[k] = 0;
 						}
+					
+					cachedIPs = newCachedIPs;
+					
+					cachedSlices = newCachedSlices;
 					
 					if (IJ.debugMode) 
 						IJ.log("The cache space has been shifted to the left");
@@ -121,17 +131,21 @@ public ImageProcessor call() throws Exception {
 						if(k + moveInterval < cacheSize
 								&& cachedIPs[k] != null){
 							
-							cachedIPs[k + moveInterval]
-									= (ImageProcessor) cachedIPs[k].clone();
+							newCachedIPs[k + moveInterval]
+									= cachedIPs[k];
 						
-							cachedSlices[k + moveInterval]
+							newCachedSlices[k + moveInterval]
 									= cachedSlices[k];
 						
 						}else{
-							cachedIPs[k] = null;
+							newCachedIPs[k] = null;
 							
-							cachedSlices[k] = 0;
+							newCachedSlices[k] = 0;
 						}
+					
+					cachedIPs = newCachedIPs;
+					
+					cachedSlices = newCachedSlices;
 					
 					if (IJ.debugMode) 
 						IJ.log("The cache space has been shifted to the right");
@@ -169,10 +183,6 @@ public ImageProcessor call() throws Exception {
 		cacheForCurrentSlice = 
 				cacheCenter + sliceNumber % moveInterval - moveInterval + 1;
 		
-		//formatting the cache space
-		int[] newCachedSlices = new int[cacheSize];
-		
-		ImageProcessor[] newCachedIPs = new ImageProcessor[cacheSize];
 		
 		for(int i = 0; i < cacheSize; i++){
 			
@@ -185,7 +195,7 @@ public ImageProcessor call() throws Exception {
 							= sliceNumber - cacheForCurrentSlice + i;
 					
 					newCachedIPs[i] 
-							= (ImageProcessor) cachedIPs[cacheNo].clone();
+							= cachedIPs[cacheNo];
 				}
 			}
 		}
@@ -338,5 +348,6 @@ public ImageProcessor call() throws Exception {
 	r.close();
 	
 	return null;
+	
 }
 }
