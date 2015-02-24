@@ -103,7 +103,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	private static final int[] numberFields = {6, 7, 8, 9};
 	private static final int[] spaceFields = {11, 12, 13, 14};
 	private static final int[] manualFields = {17, 18, 19, 20};
-	private static final int STACK = 0, INDIVIDUAL = 1, SAVE = 2;
+	private static final int donotField = 22;
+	private static final int STACK = 0, INDIVIDUAL = 1;
 	private boolean spacingFieldChange = false;
 	private int count = 2;
 	private TextField noSubHorInput, noSubVertInput;
@@ -114,8 +115,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	//private static boolean openInStack = true;
 	private int actRoiX, actRoiY, actRoiWidth, actRoiHeight;
 	private String[] howToOpenSubimages = 
-		{ "in a Stack", "individually", "save into a folder"};
+		{ "As a Stack", "As an individual image"};
 	private String saveDir;
+	//private static boolean noShowing ;
+	private static boolean saveSubimages = true;
 	private static String howToOpen;
 
 	
@@ -414,8 +417,11 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
 		//gd.addCheckbox("Open subimages as a Stack", openInStack);
-		gd.addRadioButtonGroup("Open Subimages:", howToOpenSubimages, 3, 1, 
+		gd.addRadioButtonGroup("Open Subimages:", howToOpenSubimages, 2, 1, 
 				howToOpenSubimages[STACK]);
+		gd.addCheckbox("Save Subimages into a folder", saveSubimages);
+		//gd.addCheckbox("Do not show images", noShowing);
+		
 		compGroup2 = gd.getComponents();
 		
 		if(cg1EqualsNumber){
@@ -451,7 +457,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			
 			if("".equals(err)) {
 				
-				if(howToOpenSubimages[SAVE].equals(howToOpen)){
+				if(saveSubimages){
 					SaveDialog od = 
 							new SaveDialog("Save Subimages into...", 
 									"subimage.tiff", ".tiff");
@@ -491,6 +497,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		subsStartY = (int) gd.getNextNumber();
 		//openInStack = gd.getNextBoolean();
 		howToOpen = gd.getNextRadioButton();
+		saveSubimages = gd.getNextBoolean();
+		//noShowing = gd.getNextBoolean();
+		
 		err = "";
 		IJ.showStatus(err);
 		
@@ -716,18 +725,22 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 									cp);
 					
 					//if(openInStack)
-					if(howToOpenSubimages[STACK].equals(howToOpen))
+					if(howToOpenSubimages[STACK].equals(howToOpen)){
 						stackOutput.addSlice(cp);
-					
-					else if(howToOpenSubimages[INDIVIDUAL].equals(howToOpen))
-						imp.show();
-					
-					else if(howToOpenSubimages[SAVE].equals(howToOpen)){
-						FileSaver fs = new FileSaver(imp);
-						
-						fs.saveAsTiff(saveDir + name + 
-								"_subimage_" + (noSubHor * m + n + 1) + ".tiff");
 					}
+					
+					else if(howToOpenSubimages[INDIVIDUAL].equals(howToOpen)){
+						imp.show();
+						
+						if(saveSubimages){
+							FileSaver fs = new FileSaver(imp);
+							
+							fs.saveAsTiff(saveDir + name + 
+									"_subimage_" + (noSubHor * m + n + 1) + ".tiff");
+						}
+					}
+					
+					
 					
 				}
 			}
@@ -736,16 +749,20 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			if(howToOpenSubimages[STACK].equals(howToOpen)){
 				ImagePlus impOut = new ImagePlus(name + "_SubimageStack", stackOutput);
 				impOut.show();
+				
+				if(saveSubimages){
+					FileSaver fs = new FileSaver(impOut);
+					
+					fs.saveAsTiff(saveDir + name + "_SubimageStack.tiff");
+				}
 			}
 			
-			if(howToOpenSubimages[SAVE].equals(howToOpen)){
-				//ref: http://stackoverflow.com/questions/9134096/java-open-folder-on-button-click
-				if(Desktop.isDesktopSupported()){
-					Desktop dt = Desktop.getDesktop();
-					dt.open(new File(saveDir));
-				}
-				
+			
+			if(saveSubimages){
+				Desktop dt = Desktop.getDesktop();
+				dt.open(new File(saveDir));
 			}
+			
 			
 			r.close();
 			drawSubimagesOnThumb();
@@ -760,8 +777,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		}
 	}
 	
-	
-	
+
 	void drawSubimagesOnThumb(){
 		Overlay ol = impThumb.getOverlay();
 		
