@@ -13,11 +13,15 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.WindowManager;
+import ij.io.FileSaver;
 import ij.io.OpenDialog;
+import ij.io.SaveDialog;
 import ij.plugin.PlugIn;
+import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -99,6 +103,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	private static final int[] numberFields = {6, 7, 8, 9};
 	private static final int[] spaceFields = {11, 12, 13, 14};
 	private static final int[] manualFields = {17, 18, 19, 20};
+	private static final int STACK = 0, INDIVIDUAL = 1, SAVE = 2;
 	private boolean spacingFieldChange = false;
 	private int count = 2;
 	private TextField noSubHorInput, noSubVertInput;
@@ -106,8 +111,12 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	private JTextField inputX ,inputY, inputWidth, inputHeight;
 	private boolean inputByMouseDragged;
 	protected boolean mouseReleased;
-	private static boolean openInStack = true;
+	//private static boolean openInStack = true;
 	private int actRoiX, actRoiY, actRoiWidth, actRoiHeight;
+	private String[] howToOpenSubimages = 
+		{ "in a Stack", "individually", "save into a folder"};
+	private String saveDir;
+	private static String howToOpen;
 
 	
 	@Override
@@ -404,8 +413,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				3, 1, subimagesLocatedBy[RANDOM]);
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
-		gd.addCheckbox("Open subimages as a Stack", openInStack);
-		
+		//gd.addCheckbox("Open subimages as a Stack", openInStack);
+		gd.addRadioButtonGroup("Open Subimages:", howToOpenSubimages, 3, 1, 
+				howToOpenSubimages[STACK]);
 		compGroup2 = gd.getComponents();
 		
 		if(cg1EqualsNumber){
@@ -438,9 +448,19 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			return;
 		}
 		if (gd.wasOKed()){
-			if("".equals(err)) 
+			
+			if("".equals(err)) {
+				
+				if(howToOpenSubimages[SAVE].equals(howToOpen)){
+					SaveDialog od = 
+							new SaveDialog("Save Subimages into...", 
+									"subimage.tiff", ".tiff");
+					saveDir = od.getDirectory();
+				}
+				
 				openSubimages();
-			else {
+				
+			} else {
 				IJ.error("Subimage Extractor " + err);
 				appX = 0;
 				impThumb.close();
@@ -469,7 +489,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		location = gd.getNextRadioButton();
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
-		openInStack = gd.getNextBoolean();
+		//openInStack = gd.getNextBoolean();
+		howToOpen = gd.getNextRadioButton();
 		err = "";
 		IJ.showStatus(err);
 		
@@ -573,12 +594,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	
 	void openSubimages(){
-		ImageProcessorReader r = 
-				new ImageProcessorReader(
+		ChannelSeparator r = 				
 						new ChannelSeparator(
 								LociPrefs.makeImageReader()
-							)
-					);
+								);
 		
 		try {
 			IJ.showStatus("Examining file " + name);
@@ -593,6 +612,82 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 				for (int n = 0; n < noSubHor; n++) {
 					int subimageX = subsStartX + appX * n;
 					
+					ColorProcessor cp = new ColorProcessor(subWidth, subHeight);
+					cp.setColor(Color.WHITE);
+					
+					if(subimageX < 0 || subimageY < 0
+							|| subimageX + subWidth > imageWidth 
+							|| subimageY + subHeight > imageHeight){
+			
+						int subimageXstart = subimageX;
+						
+						int subimageYstart = subimageY;
+						
+						int subimageXend = subimageX + subWidth;
+						
+						int subimageYend = subimageY + subHeight;
+						
+						if(subimageX < 0)
+							subimageXstart = 0;
+						
+						if(subimageY < 0)
+							subimageYstart = 0;
+						
+						if(subimageXend > imageWidth)
+							subimageXend = imageWidth;
+						
+						if(subimageYend > imageHeight)
+							subimageYend = imageHeight;
+						
+						
+						int newWidth = subimageXend - subimageXstart;
+						
+						int newHeight = subimageYend - subimageYstart;
+						
+						byte[] R = 
+								r.openBytes(0, subimageXstart, subimageYstart, 
+										newWidth, newHeight);
+						
+						byte[] G = 
+								r.openBytes(1, subimageXstart, subimageYstart, 
+										newWidth, newHeight);
+						
+						byte[] B = 
+								r.openBytes(2, subimageXstart, subimageYstart, 
+										newWidth, newHeight);
+						
+						
+						
+						for(int i = 0; i < newWidth; i++){
+							for(int j = 0; j < newHeight; j++){
+								
+								int k = i + newWidth * j;
+								
+								cp.putPixel(subimageXstart - subimageX + i,
+										subimageYstart - subimageY + j,  
+										0xff000000 | ((R[k]&0xff)<<16) | 
+										((G[k]&0xff)<<8) | B[k]&0xff);
+							}
+						}
+						
+					}else {
+						byte[] R = 
+								r.openBytes(0, subimageX, subimageY, 
+										subWidth, subHeight);
+						
+						byte[] G = 
+								r.openBytes(1, subimageX, subimageY, 
+										subWidth, subHeight);
+						
+						byte[] B = 
+								r.openBytes(2, subimageX, subimageY, 
+										subWidth, subHeight);
+						
+						cp.setRGB(R, G, B);
+					}
+					
+					
+					/*
 					ImageStack stackInRGB = new ImageStack(subWidth, subHeight);
 					
 					for (int i=0; i<num; i++) {
@@ -604,6 +699,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 						stackInRGB.addSlice("" + (i + 1), ip);
 					}
 					
+					
+					
 					IJ.showStatus("Constructing image");
 					ImagePlus imp = 
 							new ImagePlus(name + ", subimage " + (noSubHor * m + n + 1) +
@@ -611,19 +708,44 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 									stackInRGB);
 					
 					new ImageConverter(imp).convertRGBStackToRGB();
+					*/
 					
-					if(openInStack)
-						stackOutput.addSlice(imp.getProcessor());
-					else
+					ImagePlus imp = 
+							new ImagePlus(name + ", subimage " + (noSubHor * m + n + 1) +
+									" (x = " + subimageX + ", y = " +	subimageY + ")", 
+									cp);
+					
+					//if(openInStack)
+					if(howToOpenSubimages[STACK].equals(howToOpen))
+						stackOutput.addSlice(cp);
+					
+					else if(howToOpenSubimages[INDIVIDUAL].equals(howToOpen))
 						imp.show();
+					
+					else if(howToOpenSubimages[SAVE].equals(howToOpen)){
+						FileSaver fs = new FileSaver(imp);
+						
+						fs.saveAsTiff(saveDir + name + 
+								"_subimage_" + (noSubHor * m + n + 1) + ".tiff");
+					}
+					
 				}
 			}
 			
-			if(openInStack){
+			//if(openInStack){
+			if(howToOpenSubimages[STACK].equals(howToOpen)){
 				ImagePlus impOut = new ImagePlus(name + "_SubimageStack", stackOutput);
 				impOut.show();
 			}
+			
+			if(howToOpenSubimages[SAVE].equals(howToOpen)){
+				//ref: http://stackoverflow.com/questions/9134096/java-open-folder-on-button-click
+				if(Desktop.isDesktopSupported()){
+					Desktop dt = Desktop.getDesktop();
+					dt.open(new File(saveDir));
+				}
 				
+			}
 			
 			r.close();
 			drawSubimagesOnThumb();
