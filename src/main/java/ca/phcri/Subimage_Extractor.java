@@ -42,6 +42,8 @@ import ij.gui.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
@@ -68,7 +70,7 @@ import javax.swing.event.DocumentListener;
 
 public class Subimage_Extractor implements 
 //PlugIn, DialogListener, ActionListener, DocumentListener {
-PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
+PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, FocusListener {
 
 
 	private String dir, name, id;
@@ -103,14 +105,14 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	private static final int[] numberFields = {6, 7, 8, 9};
 	private static final int[] spaceFields = {11, 12, 13, 14};
 	private static final int[] manualFields = {17, 18, 19, 20};
-	private static final int donotField = 22;
+	//private static final int donotField = 22;
 	private static final int STACK = 0, INDIVIDUAL = 1;
 	private boolean spacingFieldChange = false;
 	private int count = 2;
 	private TextField noSubHorInput, noSubVertInput;
 	private TextField spaceHorInput, spaceVertInput;
 	private JTextField inputX ,inputY, inputWidth, inputHeight;
-	private boolean inputByMouseDragged;
+	private boolean inputByMouseDragged = false;
 	protected boolean mouseReleased;
 	//private static boolean openInStack = true;
 	private int actRoiX, actRoiY, actRoiWidth, actRoiHeight;
@@ -167,6 +169,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			impThumb.show();
 			
 			ImageCanvas ic = impThumb.getCanvas();
+			/*
 			ic.addMouseListener(
 					new MouseAdapter(){
 						@Override
@@ -175,6 +178,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 						}
 					}
 				);
+			*/
 			
 			ic.addMouseMotionListener(this);
 			
@@ -224,6 +228,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			inputWidth.setText(String.valueOf(actRoiWidth));
 			inputHeight.setText(String.valueOf(actRoiHeight));
 		}
+		
+		inputByMouseDragged = false;
+		
 	}
 	
 
@@ -257,8 +264,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 		for (int i = 0; i < 4; i++){
 			JLabel l = new JLabel(inputRoi[i], SwingConstants.TRAILING);
 			p2.add(l);
-			JTextField tf = new JTextField();
+			JTextField tf = new JTextField("0");
 			tf.getDocument().addDocumentListener(this);
+			tf.addFocusListener(this);
+			tf.setEditable(true);
 			l.setLabelFor(tf);
 			p2.add(tf);
 		}
@@ -324,31 +333,57 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 	
 	
 	void drawRoi(){
-		if(inputByMouseDragged) return;
+		if(inputByMouseDragged)
+			return;
+		
+		impThumb.deleteRoi();
 		
 		err = "";
 		
-		actRoiX = Integer.parseInt(inputX.getText());
-		actRoiY = Integer.parseInt(inputY.getText());
-		actRoiWidth = Integer.parseInt(inputWidth.getText());
-		actRoiHeight = Integer.parseInt(inputHeight.getText());
+		try {
+			actRoiX = Integer.parseInt(inputX.getText());
+			actRoiY = Integer.parseInt(inputY.getText());
+			actRoiWidth = Integer.parseInt(inputWidth.getText());
+			actRoiHeight = Integer.parseInt(inputHeight.getText());
+			
+		} catch (NumberFormatException e){
+			return;
+		}
 		
 		int rectX = (int) (actRoiX / ratioImageThumbX);
 		int rectY = (int) (actRoiY	/ ratioImageThumbY);
 		int rectWidth = (int) (actRoiWidth / ratioImageThumbX);
 		int rectHeight = (int) (actRoiHeight / ratioImageThumbY);
+
+		if(actRoiX < 0 || actRoiY < 0 || actRoiWidth < 0 || actRoiHeight < 0)
+			err += "input number should be 0 or positive";
+
 		
 		if(actRoiX + actRoiWidth > imageWidth ||
 				actRoiY + actRoiHeight	> imageHeight){
 			err += "ROI should be within the image";
 		}
 		
+		
 		if(!"".equals(err)) {
 			IJ.showStatus(err);
 			return;
 			}
 		
+		
 		impThumb.setRoi(rectX, rectY, rectWidth, rectHeight);
+	}
+
+	@Override
+	public void focusGained(FocusEvent e) {
+		((JTextField) e.getComponent()).selectAll();
+		
+	}
+
+	@Override
+	public void focusLost(FocusEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	
@@ -612,7 +647,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			IJ.showStatus("Examining file " + name);
 			r.setId(id);
 			r.setSeries(0);      
-			int num = r.getImageCount();
+			//int num = r.getImageCount();
 			
 			ImageStack stackOutput = new ImageStack(subWidth, subHeight);
 			
@@ -905,6 +940,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener {
 			}
 		}
 
+	
 	
 
 
