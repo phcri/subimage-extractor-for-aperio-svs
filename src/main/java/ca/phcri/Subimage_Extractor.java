@@ -49,6 +49,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -70,7 +71,7 @@ import javax.swing.event.DocumentListener;
 
 public class Subimage_Extractor implements 
 //PlugIn, DialogListener, ActionListener, DocumentListener {
-PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, FocusListener {
+PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, FocusListener, WindowListener {
 
 
 	private String dir, name, id;
@@ -119,6 +120,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 	private String[] howToOpenSubimages = 
 		{ "As a Stack", "As an individual image"};
 	private String saveDir;
+	private ImageWindow iw;
 	//private static boolean noShowing ;
 	private static boolean saveSubimages = true;
 	private static String howToOpen;
@@ -134,6 +136,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		OpenDialog od = new OpenDialog("Open Image File...", arg);
 		dir = od.getDirectory();
 		name = od.getFileName();
+		
+		if(name == null)
+			return;
+		
 		id = dir + name;	
 		ImageProcessorReader r = new ImageProcessorReader(
 				new ChannelSeparator(LociPrefs.makeImageReader()));
@@ -182,16 +188,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			
 			ic.addMouseMotionListener(this);
 			
-			ImageWindow iw = impThumb.getWindow();
-			iw.addWindowListener(
-					new WindowAdapter(){
-						@Override
-						public void windowClosing(WindowEvent e){
-							impThumb.close();
-							rg.dispose();
-							}
-						}
-					);
+			iw = impThumb.getWindow();
+			iw.addWindowListener(this);
 			
 			r.close();
 			IJ.showStatus("");
@@ -947,6 +945,48 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				tp.saveAs(IJ.getDirectory("plugins") + fileName);	
 			}
 		}
+
+	@Override
+	public void windowOpened(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) {
+		if(e.getSource().equals(iw) && rg != null && rg.isVisible())
+			rg.dispose();
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	
 	
