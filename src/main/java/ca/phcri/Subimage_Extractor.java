@@ -198,9 +198,11 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		}
 		catch (FormatException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
+			return;
 		}
 		catch (IOException exc) {
 			IJ.error("Sorry, an error occurred: " + exc.getMessage());
+			return;
 		}
 		
 		roiGetter();
@@ -842,6 +844,12 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		ol.setLabelColor(Color.gray);
 		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
 		impThumb.setOverlay(ol);
+		
+		if(saveSubimages){
+			FileSaver fs = new FileSaver(impThumb);
+			
+			fs.saveAsTiff(saveDir + "Thumbnail_" + name + ".tiff");
+		}
 	}
 	
 	
