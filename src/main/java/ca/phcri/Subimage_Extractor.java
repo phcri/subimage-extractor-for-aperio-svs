@@ -660,6 +660,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				for (int n = 0; n < noSubHor; n++) {
 					int subimageX = subsStartX + appX * n;
 					
+					IJ.showStatus("Extracting Subimage " + (noSubHor * m + n + 1));
+					
 					ColorProcessor cp = new ColorProcessor(subWidth, subHeight);
 					cp.setColor(Color.WHITE);
 					
@@ -735,31 +737,11 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 					}
 					
 					
-					/*
-					ImageStack stackInRGB = new ImageStack(subWidth, subHeight);
 					
-					for (int i=0; i<num; i++) {
-						IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
-						ImageProcessor ip = 
-								r.openProcessors(i, subimageX, subimageY, 
-										subWidth, subHeight)[0];
-
-						stackInRGB.addSlice("" + (i + 1), ip);
-					}
-					
-					
-					
-					IJ.showStatus("Constructing image");
-					ImagePlus imp = 
-							new ImagePlus(name + ", subimage " + (noSubHor * m + n + 1) +
-									" (x = " + subimageX + ", y = " +	subimageY + ")", 
-									stackInRGB);
-					
-					new ImageConverter(imp).convertRGBStackToRGB();
-					*/
 					
 					ImagePlus imp = 
-							new ImagePlus(imageTitle + ", subimage " + (noSubHor * m + n + 1) +
+							new ImagePlus(imageTitle + 
+									", subimage " + (noSubHor * m + n + 1) +
 									" (x = " + subimageX + ", y = " +	subimageY + ")", 
 									cp);
 					
@@ -768,33 +750,34 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						stackOutput.addSlice(cp);
 					}
 					
-					else if(howToOpenSubimages[INDIVIDUAL].equals(howToOpen)){
+					if(howToOpenSubimages[INDIVIDUAL].equals(howToOpen)){
 						imp.show();
 						
 						if(saveSubimages){
 							FileSaver fs = new FileSaver(imp);
 							
 							fs.saveAsTiff(saveDir + imageTitle + 
-									"_subimage_" + (noSubHor * m + n + 1) + ".tiff");
+									"_subimage_" + (noSubHor * m + n + 1) + ".tif");
 						}
 					}
-					
-					
 					
 				}
 			}
 			
 			//if(openInStack){
 			if(howToOpenSubimages[STACK].equals(howToOpen)){
-				ImagePlus impOut = new ImagePlus(imageTitle + "_SubimageStack", stackOutput);
+				ImagePlus impOut = 
+						new ImagePlus(imageTitle + "_SubimageStack", stackOutput);
 				impOut.show();
 				
 				if(saveSubimages){
 					FileSaver fs = new FileSaver(impOut);
 					
-					fs.saveAsTiff(saveDir + imageTitle + "_SubimageStack.tiff");
+					fs.saveAsTiffStack(saveDir + imageTitle + "_SubimageStack.tif");
 				}
+				
 			}
+			
 			
 			
 			if(saveSubimages){
@@ -814,9 +797,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			
 			
 			if(saveSubimages){
-				FileSaver fs = new FileSaver(impThumb);
+				FileSaver fs2 = new FileSaver(impThumb);
 				
-				fs.saveAsTiff(saveDir + "Thumbnail of " + imageTitle + ".tiff");
+				fs2.saveAsTiff(saveDir + "Thumbnail of " + imageTitle + ".tif");
 			}
 			
 			IJ.showStatus("");
@@ -921,7 +904,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				//make a new empty TextWindow with String windowTitle with headings
 				historyWindow = new TextWindow(
 						windowTitle,
-						"Date \t Filename \t ROI starting point x \t ROI starting point y \t "
+						"Date \t Filename \t ROI starting point x \t "
+						+ "ROI starting point y \t "
 						+ "ROI width \t ROI height \t "
 						+ "Subimage starting point x \t Subimage starting point y \t "
 						+ "Subimage width \t Subimage height \t "
