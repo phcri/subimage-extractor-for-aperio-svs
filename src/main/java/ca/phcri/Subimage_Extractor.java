@@ -13,6 +13,7 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.WindowManager;
+import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
 import ij.io.OpenDialog;
 import ij.io.SaveDialog;
@@ -121,6 +122,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		{ "As a Stack", "As an individual image"};
 	private String saveDir;
 	private ImageWindow iw;
+	private String imageTitle;
 	//private static boolean noShowing ;
 	private static boolean saveSubimages = true;
 	private static String howToOpen;
@@ -141,6 +143,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			return;
 		
 		id = dir + name;	
+		
+		imageTitle = name.substring(0, name.indexOf("."));
+		
 		ImageProcessorReader r = new ImageProcessorReader(
 				new ChannelSeparator(LociPrefs.makeImageReader()));
 
@@ -167,7 +172,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			}
 			
 			IJ.showStatus("Constructing image");
-			impThumb = new ImagePlus("thumbnail of " + name, stackInRGB);
+			impThumb = new ImagePlus("thumbnail of " + imageTitle, stackInRGB);
 			
 
 			new ImageConverter(impThumb).convertRGBStackToRGB();
@@ -493,10 +498,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			if("".equals(err)) {
 				
 				if(saveSubimages){
-					SaveDialog od = 
-							new SaveDialog("Save Subimages into...", 
-									"subimage.tiff", ".tiff");
-					saveDir = od.getDirectory();
+					DirectoryChooser dc = 
+							new DirectoryChooser("Save Subimages into...");
+					saveDir = dc.getDirectory();
 				}
 				
 				openSubimages();
@@ -755,7 +759,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 					*/
 					
 					ImagePlus imp = 
-							new ImagePlus(name + ", subimage " + (noSubHor * m + n + 1) +
+							new ImagePlus(imageTitle + ", subimage " + (noSubHor * m + n + 1) +
 									" (x = " + subimageX + ", y = " +	subimageY + ")", 
 									cp);
 					
@@ -770,7 +774,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						if(saveSubimages){
 							FileSaver fs = new FileSaver(imp);
 							
-							fs.saveAsTiff(saveDir + name + 
+							fs.saveAsTiff(saveDir + imageTitle + 
 									"_subimage_" + (noSubHor * m + n + 1) + ".tiff");
 						}
 					}
@@ -782,13 +786,13 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			
 			//if(openInStack){
 			if(howToOpenSubimages[STACK].equals(howToOpen)){
-				ImagePlus impOut = new ImagePlus(name + "_SubimageStack", stackOutput);
+				ImagePlus impOut = new ImagePlus(imageTitle + "_SubimageStack", stackOutput);
 				impOut.show();
 				
 				if(saveSubimages){
 					FileSaver fs = new FileSaver(impOut);
 					
-					fs.saveAsTiff(saveDir + name + "_SubimageStack.tiff");
+					fs.saveAsTiff(saveDir + imageTitle + "_SubimageStack.tiff");
 				}
 			}
 			
@@ -801,6 +805,20 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			
 			r.close();
 			drawSubimagesOnThumb();
+			
+			impThumb.deleteRoi();
+			ImagePlus impThumbFlatten = impThumb.flatten();
+			impThumb.setProcessor(impThumbFlatten.getProcessor());
+			impThumb.getOverlay().clear();
+			impThumb.updateAndDraw();
+			
+			
+			if(saveSubimages){
+				FileSaver fs = new FileSaver(impThumb);
+				
+				fs.saveAsTiff(saveDir + "Thumbnail of " + imageTitle + ".tiff");
+			}
+			
 			IJ.showStatus("");
 			showParameters();
 		}
@@ -843,11 +861,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
 		impThumb.setOverlay(ol);
 		
-		if(saveSubimages){
-			FileSaver fs = new FileSaver(impThumb);
-			
-			fs.saveAsTiff(saveDir + "Thumbnail_" + name + ".tiff");
-		}
+		
 	}
 	
 	
