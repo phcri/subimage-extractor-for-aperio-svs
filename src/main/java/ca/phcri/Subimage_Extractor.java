@@ -172,7 +172,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			}
 			
 			IJ.showStatus("Constructing image");
-			impThumb = new ImagePlus("thumbnail of " + imageTitle, stackInRGB);
+			impThumb = new ImagePlus("Thumbnail of " + imageTitle + ".tif", stackInRGB);
 			
 
 			new ImageConverter(impThumb).convertRGBStackToRGB();
@@ -767,7 +767,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			//if(openInStack){
 			if(howToOpenSubimages[STACK].equals(howToOpen)){
 				ImagePlus impOut = 
-						new ImagePlus(imageTitle + "_SubimageStack", stackOutput);
+						new ImagePlus(imageTitle + "_SubimageStack.tif", stackOutput);
 				impOut.show();
 				
 				if(saveSubimages){
