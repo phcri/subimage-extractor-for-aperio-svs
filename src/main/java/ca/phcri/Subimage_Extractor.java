@@ -16,7 +16,6 @@ import ij.WindowManager;
 import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
 import ij.io.OpenDialog;
-import ij.io.SaveDialog;
 import ij.plugin.PlugIn;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
@@ -180,16 +179,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			impThumb.show();
 			
 			ImageCanvas ic = impThumb.getCanvas();
-			/*
-			ic.addMouseListener(
-					new MouseAdapter(){
-						@Override
-						public void mouseReleased(MouseEvent e){
-							inputByMouseDragged = false;
-						}
-					}
-				);
-			*/
+			
 			
 			ic.addMouseMotionListener(this);
 			
@@ -526,7 +516,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		
 		subWidth = (int) gd.getNextNumber();
 		subHeight = (int) gd.getNextNumber();
-		spacing = radioButtonCheck(cg1);
+		String currentSpacing = radioButtonCheck(cg1);
 		int currentNoSubHor = (int) gd.getNextNumber();
 		int currentNoSubVert = (int) gd.getNextNumber();
 		int currentSpaceHor = (int) gd.getNextNumber();
@@ -544,7 +534,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		
 		//parts to avoid flickering
 		if(currentNoSubHor != noSubHor || currentNoSubVert != noSubVert || 
-				currentSpaceHor != spaceHor || currentSpaceVert != spaceVert){
+				currentSpaceHor != spaceHor || currentSpaceVert != spaceVert ||
+				currentSpacing != spacing){
 			spacingFieldChange = true;
 			count = 0;
 		}
@@ -553,6 +544,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		noSubVert = currentNoSubVert;
 		spaceHor = currentSpaceHor;
 		spaceVert = currentSpaceVert;
+		spacing = currentSpacing;
 		
 		cg1EqualsNumber = subimageSpacingSpecifiedBy[NUMBER].equals(spacing);
 
