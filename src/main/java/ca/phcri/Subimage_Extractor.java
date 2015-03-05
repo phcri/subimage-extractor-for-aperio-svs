@@ -122,6 +122,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 	private String saveDir;
 	private ImageWindow iw;
 	private String imageTitle;
+	private boolean useThumb;
 	//private static boolean noShowing ;
 	private static boolean saveSubimages = true;
 	private static String howToOpen;
@@ -155,18 +156,51 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			r.setSeries(0);
 			imageWidth = r.getSizeX();
 			imageHeight = r.getSizeY();
-			thumbWidth = r.getThumbSizeX();
-			thumbHeight = r.getThumbSizeY();
+			
+			
+			
+			for(int i = 0; i < r.getSeriesCount(); i++){
+				
+				r.setSeries(i);
+				
+				thumbWidth = r.getSizeX();
+				thumbHeight = r.getSizeY();
+				
+				
+				
+				if(thumbWidth < 3000 && thumbHeight < 3000){
+					useThumb = false;
+					break;
+				}
+				
+				if(i == r.getSeriesCount()){
+					r.setSeries(0);
+					thumbWidth = r.getThumbSizeX();
+					thumbHeight = r.getThumbSizeY();
+					useThumb = true;
+					break;
+				}
+			}
+			
+			
+			
 			ratioImageThumbX = imageWidth/thumbWidth;
 			ratioImageThumbY = imageHeight/thumbHeight;
 
 			int num = r.getImageCount();
 			
 			ImageStack stackInRGB = new ImageStack(thumbWidth, thumbHeight);
-
+			
+			
 			for (int i=0; i<num; i++) {
 				IJ.showStatus("Reading image plane #" + (i + 1) + "/" + num);
-				ImageProcessor ip = r.openThumbProcessors(i)[0];
+				ImageProcessor ip;
+				
+				if(useThumb)
+					ip = r.openThumbProcessors(i)[0];
+				else
+					ip = r.openProcessors(i)[0];
+				
 				stackInRGB.addSlice("" + (i + 1), ip);
 			}
 			
