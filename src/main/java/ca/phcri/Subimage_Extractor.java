@@ -168,7 +168,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				
 				
 				
-				if(thumbWidth < 3000 && thumbHeight < 3000){
+				if(thumbWidth < 4000 && thumbHeight < 4000){
 					useThumb = false;
 					break;
 				}
