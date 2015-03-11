@@ -75,7 +75,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 
 
 	private String dir, name, id;
-	private static int subWidth = 1028, subHeight = 768,
+	private static int subWidth = 2400, subHeight = 1800,
 			noSubHor = 3, noSubVert = 3, spaceHor, spaceVert;
 	
 	private static ImagePlus impThumb;
@@ -525,6 +525,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 					DirectoryChooser dc = 
 							new DirectoryChooser("Save Subimages into...");
 					saveDir = dc.getDirectory();
+					
+					if(saveDir == null)
+						saveSubimages = false;
 				}
 				
 				openSubimages();
@@ -668,6 +671,13 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 	
 	
 	void openSubimages(){
+		
+		//if there is only one subimage, it is not possible to open it in a stack
+		int totalSubimageNo = noSubHor * noSubVert;
+		
+		if(totalSubimageNo == 1)
+			howToOpen = howToOpenSubimages[INDIVIDUAL];
+		
 		ChannelSeparator r = 				
 						new ChannelSeparator(
 								LociPrefs.makeImageReader()
@@ -683,10 +693,16 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			
 			for(int m = 0; m < noSubVert; m++) {
 				int subimageY = subsStartY + appY * m;
+				
 				for (int n = 0; n < noSubHor; n++) {
 					int subimageX = subsStartX + appX * n;
 					
-					IJ.showStatus("Extracting Subimage " + (noSubHor * m + n + 1));
+					int subImageNo = noSubHor * m + n + 1;
+					
+					IJ.showStatus("Extracting Subimage " + subImageNo + 
+							"/" + totalSubimageNo);
+					
+					IJ.showProgress(subImageNo, totalSubimageNo);
 					
 					ColorProcessor cp = new ColorProcessor(subWidth, subHeight);
 					cp.setColor(Color.WHITE);
@@ -805,7 +821,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			}
 			
 			
-			
+			//showing the folder into which images have been saved
 			if(saveSubimages){
 				Desktop dt = Desktop.getDesktop();
 				dt.open(new File(saveDir));
