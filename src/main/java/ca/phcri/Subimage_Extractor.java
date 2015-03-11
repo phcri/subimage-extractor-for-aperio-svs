@@ -678,16 +678,17 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		if(totalSubimageNo == 1)
 			howToOpen = howToOpenSubimages[INDIVIDUAL];
 		
+				
 		ChannelSeparator r = 				
 						new ChannelSeparator(
 								LociPrefs.makeImageReader()
 								);
 		
+		
 		try {
 			IJ.showStatus("Examining file " + name);
 			r.setId(id);
 			r.setSeries(0);      
-			//int num = r.getImageCount();
 			
 			ImageStack stackOutput = new ImageStack(subWidth, subHeight);
 			
@@ -703,6 +704,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 							"/" + totalSubimageNo);
 					
 					IJ.showProgress(subImageNo, totalSubimageNo);
+					
 					
 					ColorProcessor cp = new ColorProcessor(subWidth, subHeight);
 					cp.setColor(Color.WHITE);
