@@ -454,10 +454,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		if(appX == 0){
 			noSubHor = 3;
 			noSubVert = 3;
-			spaceHor = 
-					(int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
-			spaceVert = 
-					(int) ((actRoiHeight + subHeight)/noSubVert - subHeight);
+			
+			spaceHor = (int) Math.ceil((actRoiWidth + subWidth)/noSubHor - subWidth);
+			
+			spaceVert = (int) Math.ceil((actRoiHeight + subHeight)/noSubVert - subHeight);
 		}
 		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
@@ -597,9 +597,12 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				//skip calculation of space values which 
 				//makes "the parts to avoid flickering" not necessary
 			} else {
-				spaceHor = (int) ((actRoiWidth + subWidth)/noSubHor - subWidth);
 				
-				spaceVert = (int) ((actRoiHeight + subHeight)/noSubVert - subHeight);
+				//calculate minimum space between subimages
+				//the values are rounded up to be minimum possible integers
+				spaceHor = (int) Math.ceil((actRoiWidth + subWidth)/noSubHor - subWidth);
+				
+				spaceVert = (int) Math.ceil((actRoiHeight + subHeight)/noSubVert - subHeight);
 				
 				if(spacingFieldChange){
 					spaceHorInput.setText(String.valueOf(spaceHor));
