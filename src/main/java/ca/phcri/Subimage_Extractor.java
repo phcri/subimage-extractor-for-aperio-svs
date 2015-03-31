@@ -158,7 +158,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			imageHeight = r.getSizeY();
 			
 			
-			
+			/*
 			for(int i = 0; i < r.getSeriesCount(); i++){
 				
 				r.setSeries(i);
@@ -186,6 +186,21 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			
 			ratioImageThumbX = imageWidth/thumbWidth;
 			ratioImageThumbY = imageHeight/thumbHeight;
+			
+			*/
+			
+			
+			//use series 2
+			r.setSeries(2);
+			
+			thumbWidth = r.getSizeX();
+			thumbHeight = r.getSizeY();
+			
+			ratioImageThumbX = 16;
+			ratioImageThumbY = 16;
+			useThumb = false;
+			
+			//end of the change
 
 			int num = r.getImageCount();
 			
