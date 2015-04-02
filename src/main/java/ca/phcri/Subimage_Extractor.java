@@ -17,6 +17,7 @@ import ij.io.DirectoryChooser;
 import ij.io.FileSaver;
 import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
+import ij.plugin.Macro_Runner;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 
@@ -446,6 +447,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 					sectionLocation.setStrokeColor(Color.yellow);
 					impThumb.setOverlay(new Overlay(sectionLocation));
 					rg.dispose();
+					
+					Macro_Runner macro = new Macro_Runner();
+					macro.run("TissueDensityCalculater.ijm");
 					
 					askSettings();
 				} else 
