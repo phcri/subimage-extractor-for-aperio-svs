@@ -133,7 +133,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 	
 	@Override
 	public void run(String arg) {
-		LogbackTools.enableLogging("ERROR");
+		LogbackTools.enableLogging("INFO");
 		if(iconImg == null) getIconImage();
 		openThumb(arg);
 	}
