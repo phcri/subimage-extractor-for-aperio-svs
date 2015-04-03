@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>ca.phcri</groupId>
-  <artifactId>SubimageExtractor</artifactId>
-  <version>0.9.11-myself</version>
+  <artifactId>SubimageExtractor_</artifactId>
+  <version>0.9.11-SNAPSHOT</version>
   <name>Subimage Extractor for Aperio SVS</name>
   <description>ImageJ plugin to extract small images from an Aperio SVS file</description>
   <organization>

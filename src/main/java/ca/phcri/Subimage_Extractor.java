@@ -30,6 +30,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
+import loci.common.Log4jTools;
+import loci.common.LogbackTools;
 import loci.formats.ChannelSeparator;
 import loci.formats.FormatException;
 import loci.plugins.config.SpringUtilities;
@@ -131,6 +133,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 	
 	@Override
 	public void run(String arg) {
+		LogbackTools.enableLogging("ERROR");
 		if(iconImg == null) getIconImage();
 		openThumb(arg);
 	}
