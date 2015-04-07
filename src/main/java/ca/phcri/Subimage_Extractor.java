@@ -449,6 +449,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				if("".equals(err)){
 					sectionLocation.setName("section");
 					sectionLocation.setStrokeColor(Color.yellow);
+					sectionLocation.setStrokeWidth(5);
 					impThumb.setOverlay(new Overlay(sectionLocation));
 					rg.dispose();
 					
@@ -905,13 +906,14 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						(int) (subHeight/ratioImageThumbY));
 		roi.setName("Sub" + (noSubHor * m + n + 1));
 		roi.setStrokeColor(Color.green);
+		roi.setStrokeWidth(5);
 		ol.addElement(roi);
 			}
 		}
 		
 		ol.drawNames(true);
 		ol.setLabelColor(Color.gray);
-		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
+		ol.setLabelFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
 		impThumb.setOverlay(ol);
 		
 		
