@@ -87,10 +87,16 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		{"Number of Subimages", "Space between Subimages"};
 	private static final int NUMBER = 0, SPACE = 1;
 	private static String spacing = subimageSpacingSpecifiedBy[NUMBER];
+	
 	private static final String[] subimagesLocatedBy = 
 		{"Random offset", "Fix to the upper left corner of the ROI", "Manual Location"};
 	private static final int RANDOM = 0,  STARTINGPOINT= 1, MANUAL = 2;
 	private static String location = subimagesLocatedBy[STARTINGPOINT];
+	
+	private static final String[] rescaleTo = {"100%", "66.7%", "50%"};
+	private static final int ORIGINALSIZE = 0, TWOTHIRD = 1, HALF = 2;
+	private static String rescaleRatio = rescaleTo[ORIGINALSIZE];
+	private static final String[] rescaleRatioForImageName= {"", "_twothird", "_half"};
 	
 	private Random random = new Random(System.currentTimeMillis());
 	private int appX, appY;
@@ -503,6 +509,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		gd.addNumericField("subsStartX", 0, 0);
 		gd.addNumericField("subsStartY", 0, 0);
 		//gd.addCheckbox("Open subimages as a Stack", openInStack);
+		
+		gd.addRadioButtonGroup("Rescaling subimages", rescaleTo, 3, 1, rescaleRatio);
+		
 		gd.addRadioButtonGroup("Open Subimages:", howToOpenSubimages, 2, 1, 
 				howToOpenSubimages[STACK]);
 		gd.addCheckbox("Save Subimages into a folder", saveSubimages);
@@ -584,6 +593,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 		subsStartX = (int) gd.getNextNumber();
 		subsStartY = (int) gd.getNextNumber();
 		//openInStack = gd.getNextBoolean();
+		rescaleRatio = gd.getNextRadioButton();
 		howToOpen = gd.getNextRadioButton();
 		saveSubimages = gd.getNextBoolean();
 		//noShowing = gd.getNextBoolean();
@@ -715,7 +725,18 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			r.setId(id);
 			r.setSeries(0);      
 			
-			ImageStack stackOutput = new ImageStack(subWidth, subHeight);
+			int subOutputWidth = subWidth;
+			int subOutputHeight = subHeight;
+			
+			if(rescaleTo[TWOTHIRD].equals(rescaleRatio)){
+				subOutputWidth = (int) (subWidth * 2/3);
+				subOutputHeight = (int) (subHeight * 2/3);
+			} else if (rescaleTo[HALF].equals(rescaleRatio)){
+				subOutputWidth = (int) (subWidth * 1/2);
+				subOutputHeight = (int) (subHeight * 1/2);
+			}
+			
+			ImageStack stackOutput = new ImageStack(subOutputWidth, subOutputHeight);
 			
 			for(int m = 0; m < noSubVert; m++) {
 				int subimageY = subsStartY + appY * m;
@@ -805,21 +826,22 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						cp.setRGB(R, G, B);
 					}
 					
+					ImageProcessor ipResized = cp.resize(subOutputWidth);					
 					
 					
-					
-					ImagePlus imp = 
-							new ImagePlus(imageTitle + 
-									", subimage " + (noSubHor * m + n + 1) +
-									" (x = " + subimageX + ", y = " +	subimageY + ")", 
-									cp);
 					
 					//if(openInStack)
 					if(howToOpenSubimages[STACK].equals(howToOpen)){
-						stackOutput.addSlice(cp);
+						stackOutput.addSlice(ipResized);
 					}
 					
 					if(howToOpenSubimages[INDIVIDUAL].equals(howToOpen)){
+						ImagePlus imp = 
+								new ImagePlus(imageTitle + 
+										", subimage " + (noSubHor * m + n + 1) +
+										" (x = " + subimageX + ", y = " +	subimageY + ")", 
+										ipResized);
+						
 						imp.show();
 						
 						if(saveSubimages){
@@ -836,7 +858,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			//if(openInStack){
 			if(howToOpenSubimages[STACK].equals(howToOpen)){
 				ImagePlus impOut = 
-						new ImagePlus(imageTitle + "_SubimageStack.tif", stackOutput);
+						new ImagePlus(imageTitle + "_SubimageStack" + 		
+								rescaleRatioForImageName + ".tif", stackOutput);
 				impOut.show();
 				
 				if(saveSubimages){
@@ -954,7 +977,7 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						subsStartX + "\t" + subsStartY + "\t" + 
 						subWidth + "\t" + subHeight + "\t" + 
 						spaceHor + "\t" + spaceVert + "\t" + 
-						noSubHor + "\t" + noSubVert;
+						noSubHor + "\t" + noSubVert + "\t" + rescaleRatio;
 			
 			showHistory(parameters);
 		}
@@ -982,7 +1005,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						+ "Space between subimages horizontally \t "
 						+ "Space between subimages vertically \t "
 						+ "No of subimages horizontally \t "
-						+ "No of subimages vertically",
+						+ "No of subimages vertically \t "
+						+ "Rescale Ratio",
 						"", 1028, 250);
 				
 				//If a file with a name String fileName exists in the plugin folder, 
