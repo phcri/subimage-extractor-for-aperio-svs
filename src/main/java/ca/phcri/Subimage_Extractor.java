@@ -206,8 +206,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			thumbWidth = r.getSizeX();
 			thumbHeight = r.getSizeY();
 			
-			ratioImageThumbX = 16;
-			ratioImageThumbY = 16;
+			ratioImageThumbX = 16.0;
+			ratioImageThumbY = 16.0;
 			useThumb = false;
 			
 			//end of the change
@@ -484,9 +484,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			noSubHor = 3;
 			noSubVert = 3;
 			
-			spaceHor = (int) Math.ceil((actRoiWidth + subWidth)/noSubHor - subWidth);
+			spaceHor = (int) Math.ceil((actRoiWidth + subWidth)/(double)noSubHor - subWidth);
 			
-			spaceVert = (int) Math.ceil((actRoiHeight + subHeight)/noSubVert - subHeight);
+			spaceVert = (int) Math.ceil((actRoiHeight + subHeight)/(double)noSubVert - subHeight);
 		}
 		
 		GenericDialog gd = new GenericDialog("Subimage Size and Location...");
@@ -633,9 +633,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				
 				//calculate minimum space between subimages
 				//the values are rounded up to be minimum possible integers
-				spaceHor = (int) Math.ceil((actRoiWidth + subWidth)/noSubHor - subWidth);
+				spaceHor = (int) Math.ceil((actRoiWidth + subWidth)/(double)noSubHor - subWidth);
 				
-				spaceVert = (int) Math.ceil((actRoiHeight + subHeight)/noSubVert - subHeight);
+				spaceVert = (int) Math.ceil((actRoiHeight + subHeight)/(double)noSubVert - subHeight);
 				
 				if(spacingFieldChange){
 					spaceHorInput.setText(String.valueOf(spaceHor));
@@ -654,8 +654,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 			for (int i : spaceFields)
 				compGroup2[i].setEnabled(true);
 			
-			noSubHor = (int) (actRoiWidth/ appX) + 1;
-			noSubVert = (int) (actRoiHeight / appY) + 1;
+			noSubHor =  actRoiWidth/ appX + 1;
+			noSubVert =  actRoiHeight / appY + 1;
 			
 			if(spacingFieldChange){
 				noSubHorInput.setText(String.valueOf(noSubHor));
