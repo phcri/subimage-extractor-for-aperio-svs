@@ -562,6 +562,9 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 						saveSubimages = false;
 				}
 				
+				//make saveDir if it does not exists
+				new File(saveDir).mkdirs();
+				
 				openSubimages();
 				
 			} else {
@@ -860,7 +863,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 							FileSaver fs = new FileSaver(imp);
 							
 							fs.saveAsTiff(saveDir + imageTitle + 
-									"_subimage_" + (noSubHor * m + n + 1) + ".tif");
+									"_subimage" + rescaleRatioToOutput + "_" + 
+									(noSubHor * m + n + 1) + ".tif");
 						}
 					}
 					
@@ -877,7 +881,8 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 				if(saveSubimages){
 					FileSaver fs = new FileSaver(impOut);
 					
-					fs.saveAsTiffStack(saveDir + imageTitle + "_SubimageStack.tif");
+					fs.saveAsTiffStack(saveDir + imageTitle + "_SubimageStack" + 		
+							rescaleRatioToOutput + ".tif");
 				}
 				
 			}
