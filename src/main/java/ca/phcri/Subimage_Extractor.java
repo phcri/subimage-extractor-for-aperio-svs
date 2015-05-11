@@ -458,8 +458,10 @@ PlugIn, DialogListener, ActionListener, MouseMotionListener, DocumentListener, F
 					impThumb.setOverlay(new Overlay(sectionLocation));
 					rg.dispose();
 					
+					/*
 					Macro_Runner macro = new Macro_Runner();
 					macro.run("TissueDensityCalculater.ijm");
+					*/
 					
 					askSettings();
 				} else 
